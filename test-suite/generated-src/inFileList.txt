@@ -19,5 +19,5 @@ djinni/varnames.djinni
 djinni/relative_paths.djinni
 djinni/date.djinni
 djinni/date.yaml
-djinni/duration.djinni
-djinni/duration.yaml
+./djinni/vendor/third-party/duration.djinni
+./djinni/vendor/third-party/duration.yaml
