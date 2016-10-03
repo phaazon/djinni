@@ -18,10 +18,13 @@ package djinni
 
 import djinni.ast._
 import java.io._
+
 import djinni.generatorTools._
 import djinni.meta._
 import djinni.syntax.Error
 import djinni.writer.IndentWriter
+import djnni.SwiftGenerator
+
 import scala.language.implicitConversions
 import scala.collection.mutable
 
@@ -78,7 +81,11 @@ package object generatorTools {
                    skipGeneration: Boolean,
                    yamlOutFolder: Option[File],
                    yamlOutFile: Option[String],
-                   yamlPrefix: String)
+                   yamlPrefix: String,
+                   swiftOutFolder: Option[File],
+                   swiftTypePrefix: String,
+                   nodeOutFolder: Option[File],
+                   nodePackage: String)
 
   def preComma(s: String) = {
     if (s.isEmpty) s else ", " + s
@@ -100,6 +107,14 @@ package object generatorTools {
                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
                             enum: IdentConverter, const: IdentConverter)
 
+  case class SwiftIdentStyle(ty: IdentConverter, typeParam: IdentConverter,
+                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
+                             enum: IdentConverter, const: IdentConverter)
+
+  case class JavascriptIdentStyle(ty: IdentConverter, enumType: IdentConverter, typeParam: IdentConverter,
+                                  method: IdentConverter, field: IdentConverter, local: IdentConverter,
+                                  enum: IdentConverter, const: IdentConverter)
+
   object IdentStyle {
     val camelUpper = (s: String) => s.split('_').map(firstUpper).mkString
     val camelLower = (s: String) => {
@@ -114,6 +129,8 @@ package object generatorTools {
     val javaDefault = JavaIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, underCaps, underCaps)
     val cppDefault = CppIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
     val objcDefault = ObjcIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelUpper, camelUpper)
+    val swiftDefault = SwiftIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelLower, camelLower)
+    val javascriptDefault = JavascriptIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
 
     val styles = Map(
       "FooBar" -> camelUpper,
@@ -218,6 +235,18 @@ package object generatorTools {
           createFolder("YAML", spec.yamlOutFolder.get)
         }
         new YamlGenerator(spec).generate(idl)
+      }
+      if (spec.swiftOutFolder.isDefined) {
+        if (!spec.skipGeneration) {
+          createFolder("Swift", spec.swiftOutFolder.get)
+        }
+        new SwiftGenerator(spec).generate(idl)
+      }
+      if (spec.nodeOutFolder.isDefined) {
+        if (!spec.skipGeneration) {
+          createFolder("NodeJS", spec.nodeOutFolder.get)
+        }
+        new NodeJsGenerator(spec).generate(idl)
       }
       None
     }

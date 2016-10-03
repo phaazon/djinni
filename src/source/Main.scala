@@ -79,7 +79,14 @@ object Main {
     var yamlOutFolder: Option[File] = None
     var yamlOutFile: Option[String] = None
     var yamlPrefix: String = ""
-	
+
+    // Swift variables
+    var swiftTypePrefix = ""
+    var swiftOutFolder: Option[File] = None
+    // NodeJS variables
+    var nodePackage = ""
+    var nodeOutFolder: Option[File] = None
+
     val argParser = new scopt.OptionParser[Unit]("djinni") {
 
       def identStyle(optionName: String, update: IdentConverter => Unit) = {
@@ -194,6 +201,17 @@ object Main {
         .text("Optional file in which to write the list of output files produced.")
       opt[Boolean]("skip-generation").valueName("<true/false>").foreach(x => skipGeneration = x)
         .text("Way of specifying if file generation should be skipped (default: false)")
+
+      // Swift opt
+      opt[File]("swift-out").valueName("<out-folder>").foreach(x => swiftOutFolder = Some(x))
+        .text("The output folder for swift interfaces files (Generator disabled if unspecified)")
+      opt[String]("swift-prefix").valueName("<prefix>").foreach(swiftTypePrefix = _)
+        .text("The prefix for swift data types (usually two or three letters")
+      // NodeJS opt
+      opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
+        .text("The output folder for NodeJS files (Generator disabled if unspecified)")
+      opt[String]("node-package").valueName("<package-name>").foreach(nodePackage = _)
+        .text("The javascript object hierarchy (inserted in root object by default)")
 
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
@@ -330,7 +348,12 @@ object Main {
       skipGeneration,
       yamlOutFolder,
       yamlOutFile,
-      yamlPrefix)
+      yamlPrefix,
+      swiftOutFolder,
+      swiftTypePrefix,
+      nodeOutFolder,
+      nodePackage
+    )
 
 
     try {
