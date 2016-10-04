@@ -82,6 +82,7 @@ object Main {
 
     // Swift variables
     var swiftTypePrefix = ""
+    var swiftUmbrellaHeaderFilename = "umbrella.h"
     var swiftOutFolder: Option[File] = None
     // NodeJS variables
     var nodePackage = ""
@@ -207,6 +208,9 @@ object Main {
         .text("The output folder for swift interfaces files (Generator disabled if unspecified)")
       opt[String]("swift-prefix").valueName("<prefix>").foreach(swiftTypePrefix = _)
         .text("The prefix for swift data types (usually two or three letters")
+      opt[String]("swift-umbrella-header").valueName("<filename>").foreach(swiftUmbrellaHeaderFilename = _)
+        .text("Name of the umbrella header file (default: umbrella.h)")
+
       // NodeJS opt
       opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
         .text("The output folder for NodeJS files (Generator disabled if unspecified)")
@@ -351,6 +355,7 @@ object Main {
       yamlPrefix,
       swiftOutFolder,
       swiftTypePrefix,
+      swiftUmbrellaHeaderFilename,
       nodeOutFolder,
       nodePackage
     )

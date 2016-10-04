@@ -84,6 +84,7 @@ package object generatorTools {
                    yamlPrefix: String,
                    swiftOutFolder: Option[File],
                    swiftTypePrefix: String,
+                   swiftUmbrellaHeaderFilename: String,
                    nodeOutFolder: Option[File],
                    nodePackage: String)
 
