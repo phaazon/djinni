@@ -77,6 +77,7 @@ package object generatorTools {
                    objcppIncludeObjcPrefix: String,
                    objcppNamespace: String,
                    objcBaseLibIncludePrefix: String,
+                   objcSwiftBridgingHeaderWriter: Option[Writer],
                    outFileListWriter: Option[Writer],
                    skipGeneration: Boolean,
                    yamlOutFolder: Option[File],
@@ -187,7 +188,8 @@ package object generatorTools {
   case class GenerateException(message: String) extends java.lang.Exception(message)
 
   def createFolder(name: String, folder: File) {
-    folder.mkdirs()
+    val sucess = folder.mkdirs()
+
     if (folder.exists) {
       if (!folder.isDirectory) {
         throw new GenerateException(s"Unable to create $name folder at ${q(folder.getPath)}, there's something in the way.")
@@ -230,6 +232,9 @@ package object generatorTools {
           createFolder("Objective-C++", spec.objcppOutFolder.get)
         }
         new ObjcppGenerator(spec).generate(idl)
+      }
+      if (spec.objcSwiftBridgingHeaderWriter.isDefined) {
+        new SwiftBridgingHeaderGenerator(spec).generate(idl)
       }
       if (spec.yamlOutFolder.isDefined) {
         if (!spec.skipGeneration) {
