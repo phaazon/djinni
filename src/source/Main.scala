@@ -20,6 +20,8 @@ import java.io.{IOException, FileNotFoundException, FileInputStream, InputStream
 
 import djinni.generatorTools._
 
+import scala.util.{Failure, Success}
+
 object Main {
 
   def main(args: Array[String]) {
@@ -82,7 +84,16 @@ object Main {
     var yamlOutFolder: Option[File] = None
     var yamlOutFile: Option[String] = None
     var yamlPrefix: String = ""
-	
+    var traceMethodsCalls = false
+
+    // Swift variables
+    var swiftTypePrefix = ""
+    var swiftUmbrellaHeaderFilename = "umbrella.h"
+    var swiftOutFolder: Option[File] = None
+    // NodeJS variables
+    var nodePackage = ""
+    var nodeOutFolder: Option[File] = None
+
     val argParser = new scopt.OptionParser[Unit]("djinni") {
 
       def identStyle(optionName: String, update: IdentConverter => Unit) = {
@@ -204,6 +215,10 @@ object Main {
       opt[Boolean]("skip-generation").valueName("<true/false>").foreach(x => skipGeneration = x)
         .text("Way of specifying if file generation should be skipped (default: false)")
 
+      // Debug opt
+      opt[Boolean]("trace").valueName("<enable>").foreach(x => traceMethodsCalls = x)
+        .text("If true, CPP calls will be printed on standard output")
+
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
       identStyle("ident-java-field",     c => { javaIdentStyle = javaIdentStyle.copy(field = c) })
@@ -272,98 +287,116 @@ object Main {
     }
 
     // Resolve names in IDL file, check types.
-    System.out.println("Resolving...")
-    resolver.resolve(meta.defaults, idl) match {
-      case Some(err) =>
-        System.err.println(err)
+    System.out.println("Preprocessing...")
+    preprocessor.resolveTemplates(meta.defaults, idl) match {
+      case Success((meta, idl)) =>
+        // Resolve names in IDL file, check types.
+        System.out.println("Resolving...")
+        resolver.resolve(meta, idl) match {
+          case Some(err) =>
+            System.err.println(err)
+            System.exit(1); return
+          case _ =>
+        }
+        System.out.println("Generating...")
+        val outFileListWriter = if (outFileListPath.isDefined) {
+          if (outFileListPath.get.getParentFile != null)
+            createFolder("output file list", outFileListPath.get.getParentFile)
+          Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
+        } else {
+          None
+        }
+
+        val objcSwiftBridgingHeaderWriter = if (objcSwiftBridgingHeader.isDefined && objcOutFolder.isDefined) {
+          val objcSwiftBridgingHeaderFile = new File(objcOutFolder.get.getPath, objcSwiftBridgingHeader.get + ".h")
+          if (objcSwiftBridgingHeaderFile.getParentFile != null)
+            createFolder("output file list", objcSwiftBridgingHeaderFile.getParentFile)
+          Some(new BufferedWriter(new FileWriter(objcSwiftBridgingHeaderFile)))
+        } else {
+          None
+        }
+
+        val outSpec = Spec(
+          javaOutFolder,
+          javaPackage,
+          javaClassAccessModifier,
+          javaIdentStyle,
+          javaCppException,
+          javaAnnotation,
+          javaNullableAnnotation,
+          javaNonnullAnnotation,
+          javaImplementAndroidOsParcelable,
+          javaUseFinalForRecord,
+          cppOutFolder,
+          cppHeaderOutFolder,
+          cppIncludePrefix,
+          cppExtendedRecordIncludePrefix,
+          cppNamespace,
+          cppIdentStyle,
+          cppFileIdentStyle,
+          cppOptionalTemplate,
+          cppOptionalHeader,
+          cppEnumHashWorkaround,
+          cppNnHeader,
+          cppNnType,
+          cppNnCheckExpression,
+          cppUseWideStrings,
+          jniOutFolder,
+          jniHeaderOutFolder,
+          jniIncludePrefix,
+          jniIncludeCppPrefix,
+          jniNamespace,
+          jniClassIdentStyle,
+          jniFileIdentStyle,
+          jniBaseLibIncludePrefix,
+          cppExt,
+          cppHeaderExt,
+          objcOutFolder,
+          objcppOutFolder,
+          objcIdentStyle,
+          objcFileIdentStyle,
+          objcppExt,
+          objcHeaderExt,
+          objcIncludePrefix,
+          objcExtendedRecordIncludePrefix,
+          objcppIncludePrefix,
+          objcppIncludeCppPrefix,
+          objcppIncludeObjcPrefix,
+          objcppNamespace,
+          objcBaseLibIncludePrefix,
+          objcSwiftBridgingHeaderWriter,
+          outFileListWriter,
+          skipGeneration,
+          yamlOutFolder,
+          yamlOutFile,
+          yamlPrefix,
+          swiftOutFolder,
+          swiftTypePrefix,
+          swiftUmbrellaHeaderFilename,
+          nodeOutFolder,
+          nodePackage,
+          traceMethodsCalls)
+
+        try {
+          val r = generate(idl, outSpec)
+          r.foreach(e => System.err.println("Error generating output: " + e))
+        }
+        finally {
+          if (outFileListWriter.isDefined) {
+            outFileListWriter.get.close()
+          }
+          if (objcSwiftBridgingHeaderWriter.isDefined) {
+            objcSwiftBridgingHeaderWriter.get.close()
+          }
+        }
+      case Failure(ex) =>
+        System.err.println(ex)
         System.exit(1); return
-      case _ =>
     }
 
-    System.out.println("Generating...")
-    val outFileListWriter = if (outFileListPath.isDefined) {
-      if (outFileListPath.get.getParentFile != null)
-        createFolder("output file list", outFileListPath.get.getParentFile)
-      Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
-    } else {
-      None
-    }
-    val objcSwiftBridgingHeaderWriter = if (objcSwiftBridgingHeader.isDefined && objcOutFolder.isDefined) {
-      val objcSwiftBridgingHeaderFile = new File(objcOutFolder.get.getPath, objcSwiftBridgingHeader.get + ".h")
-      if (objcSwiftBridgingHeaderFile.getParentFile != null)
-        createFolder("output file list", objcSwiftBridgingHeaderFile.getParentFile)
-      Some(new BufferedWriter(new FileWriter(objcSwiftBridgingHeaderFile)))
-    } else {
-      None
-    }
-
-    val outSpec = Spec(
-      javaOutFolder,
-      javaPackage,
-      javaClassAccessModifier,
-      javaIdentStyle,
-      javaCppException,
-      javaAnnotation,
-      javaNullableAnnotation,
-      javaNonnullAnnotation,
-      javaImplementAndroidOsParcelable,
-      javaUseFinalForRecord,
-      cppOutFolder,
-      cppHeaderOutFolder,
-      cppIncludePrefix,
-      cppExtendedRecordIncludePrefix,
-      cppNamespace,
-      cppIdentStyle,
-      cppFileIdentStyle,
-      cppOptionalTemplate,
-      cppOptionalHeader,
-      cppEnumHashWorkaround,
-      cppNnHeader,
-      cppNnType,
-      cppNnCheckExpression,
-      cppUseWideStrings,
-      jniOutFolder,
-      jniHeaderOutFolder,
-      jniIncludePrefix,
-      jniIncludeCppPrefix,
-      jniNamespace,
-      jniClassIdentStyle,
-      jniFileIdentStyle,
-      jniBaseLibIncludePrefix,
-      cppExt,
-      cppHeaderExt,
-      objcOutFolder,
-      objcppOutFolder,
-      objcIdentStyle,
-      objcFileIdentStyle,
-      objcppExt,
-      objcHeaderExt,
-      objcIncludePrefix,
-      objcExtendedRecordIncludePrefix,
-      objcppIncludePrefix,
-      objcppIncludeCppPrefix,
-      objcppIncludeObjcPrefix,
-      objcppNamespace,
-      objcBaseLibIncludePrefix,
-      objcSwiftBridgingHeaderWriter,
-      outFileListWriter,
-      skipGeneration,
-      yamlOutFolder,
-      yamlOutFile,
-      yamlPrefix)
 
 
-    try {
-      val r = generate(idl, outSpec)
-      r.foreach(e => System.err.println("Error generating output: " + e))
-    }
-    finally {
-      if (outFileListWriter.isDefined) {
-        outFileListWriter.get.close()
-      }
-      if (objcSwiftBridgingHeaderWriter.isDefined) {
-        objcSwiftBridgingHeaderWriter.get.close()
-      }
-    }
+
+
   }
 }

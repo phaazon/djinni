@@ -42,13 +42,17 @@ sealed abstract class TypeDecl {
   val params: Seq[TypeParam]
   val body: TypeDef
   val origin: String
+
+  override def equals(obj: scala.Any): Boolean = obj.isInstanceOf[TypeDecl] && obj.asInstanceOf[TypeDecl].ident.name == ident.name
+
+  override def hashCode(): Int = ident.name.hashCode
 }
 case class InternTypeDecl(override val ident: Ident, override val params: Seq[TypeParam], override val body: TypeDef, doc: Doc, override val origin: String) extends TypeDecl
 case class ExternTypeDecl(override val ident: Ident, override val params: Seq[TypeParam], override val body: TypeDef, properties: Map[String, Any], override val origin: String) extends TypeDecl
 
-case class Ext(java: Boolean, cpp: Boolean, objc: Boolean) {
+case class Ext(java: Boolean, cpp: Boolean, objc: Boolean, swift: Boolean, nodeJS: Boolean) {
   def any(): Boolean = {
-    java || cpp || objc
+    java || cpp || objc || (objc && swift) || nodeJS
   }
 }
 
@@ -78,10 +82,13 @@ object Record {
     val Eq, Ord, AndroidParcelable = Value
   }
 }
-
-case class Interface(ext: Ext, methods: Seq[Interface.Method], consts: Seq[Const]) extends TypeDef
+case class Interface(ext: Ext, methods: Seq[Interface.Method], consts: Seq[Const], generic: Seq[GenericType]) extends TypeDef
 object Interface {
   case class Method(ident: Ident, params: Seq[Field], ret: Option[TypeRef], doc: Doc, static: Boolean, const: Boolean)
+}
+
+case class GenericType(placeholder: String) {
+  println(s"PLACEHOLDER $placeholder")
 }
 
 case class Field(ident: Ident, ty: TypeRef, doc: Doc)
