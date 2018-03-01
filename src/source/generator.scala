@@ -87,6 +87,9 @@ package object generatorTools {
                    swiftUmbrellaHeaderFilename: String,
                    nodeOutFolder: Option[File],
                    nodePackage: String,
+                   nodeIncludeCpp: String,
+                   nodeIdentStyle: NodeIdentStyle,
+                   nodeFileIdentStyle: IdentConverter,
                    traceMethodCalls: Boolean)
 
   def preComma(s: String) = {
@@ -109,6 +112,11 @@ package object generatorTools {
                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
                             enum: IdentConverter, const: IdentConverter)
 
+  case class NodeIdentStyle(ty: IdentConverter, enumType: IdentConverter, typeParam: IdentConverter,
+                            method: IdentConverter, field: IdentConverter, local: IdentConverter,
+                            enum: IdentConverter, const: IdentConverter)
+
+
   object IdentStyle {
     val camelUpper = (s: String) => s.split('_').map(firstUpper).mkString
     val camelLower = (s: String) => {
@@ -123,6 +131,7 @@ package object generatorTools {
     val javaDefault = JavaIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, underCaps, underCaps)
     val cppDefault = CppIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
     val objcDefault = ObjcIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelUpper, camelUpper)
+    val nodeDefault = NodeIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
 
     val styles = Map(
       "FooBar" -> camelUpper,
@@ -289,6 +298,7 @@ abstract class Generator(spec: Spec)
   val idCpp = spec.cppIdentStyle
   val idJava = spec.javaIdentStyle
   val idObjc = spec.objcIdentStyle
+  val idNode = spec.nodeIdentStyle
 
   def wrapNamespace(w: IndentWriter, ns: String, f: IndentWriter => Unit) {
     ns match {
