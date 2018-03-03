@@ -219,6 +219,14 @@ object Main {
       opt[Boolean]("skip-generation").valueName("<true/false>").foreach(x => skipGeneration = x)
         .text("Way of specifying if file generation should be skipped (default: false)")
 
+      // Swift opt
+      opt[File]("swift-out").valueName("<out-folder>").foreach(x => swiftOutFolder = Some(x))
+        .text("The output folder for swift interfaces files (Generator disabled if unspecified)")
+      opt[String]("swift-prefix").valueName("<prefix>").foreach(swiftTypePrefix = _)
+        .text("The prefix for swift data types (usually two or three letters")
+      opt[String]("swift-umbrella-header").valueName("<filename>").foreach(swiftUmbrellaHeaderFilename = _)
+        .text("Name of the umbrella header file (default: umbrella.h)")
+
       // NodeJS opt
       opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
         .text("The output folder for NodeJS files (Generator disabled if unspecified)")
