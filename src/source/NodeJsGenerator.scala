@@ -128,7 +128,6 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
 
       var fileName = if (nodeMode) idNode.ty(ident.name) else idNode.ty(ident.name).concat("Cpp")
       fileName = s"$fileName.${spec.cppHeaderExt}"
-      //fileName = fileName.concat(s".${spec.cppHeaderExt}")
 
       createFile(spec.nodeOutFolder.get, fileName, { (w: writer.IndentWriter) =>
 
@@ -168,7 +167,6 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
 
         var classInheritance = s"class $className: public Nan::ObjectWrap"
         if (nodeMode) {
-          //classInheritance = classInheritance.concat(s", public ${spec.cppNamespace}::$cppClassName")
           classInheritance = s"$classInheritance, public ${spec.cppNamespace}::$cppClassName"
         }
         w.wl
