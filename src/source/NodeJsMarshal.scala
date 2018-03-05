@@ -233,7 +233,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           wr.wl(s"for(uint32_t i = 0; i < $propretyNames->Length(); i++)").braced {
             wr.wl(s"auto key = $propretyNames->Get(i);")
             //Check types before access
-            wr.wl(s"auto ${converted}_key_ctx = $containerName->Get(context, key).ToLocalChecked();")
+            wr.wl(s"auto ${converted}_key_ctx = $containerName->Get(Nan::GetCurrentContext(), key).ToLocalChecked();")
             wr.wl(s"if(key->Is$nodeTemplType() && ${converted}_key_ctx->Is$nodeTemplValueType())").braced {
               //Cast to c++ types
               toCppArgument(tm.args(0), s"${converted}_key", "key", wr)
@@ -298,7 +298,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
             wr.wl(s"${idCpp.ty(d.name)} $converted${listOfRecordArgs.toList.mkString("(", ", ", ")")};")
             wr.wl
           case i: Interface =>
-            wr.wl(s"Local<Object> njs_$converted = $converting->ToObject(context).ToLocalChecked();")
+            wr.wl(s"Local<Object> njs_$converted = $converting->ToObject(Nan::GetCurrentContext()).ToLocalChecked();")
             wr.wl(s"$nodeType *njs_ptr_$converted = static_cast<$nodeType *>(Nan::GetInternalFieldPointer(njs_$converted,0));")
             if(i.ext.cpp){
               wr.wl(s"if(!njs_ptr_$converted)").braced{
@@ -350,7 +350,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
             //Cast
             fromCppArgument(tm.args(0), s"${converted}_first", "elem.first", wr)
             fromCppArgument(tm.args(1), s"${converted}_second", "elem.second", wr)
-            wr.wl(s"$converted->Set(context, ${converted}_first, ${converted}_second);")
+            wr.wl(s"$converted->Set(Nan::GetCurrentContext(), ${converted}_first, ${converted}_second);")
           }
           wr.wl
 
