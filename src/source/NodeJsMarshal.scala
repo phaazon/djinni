@@ -106,7 +106,9 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
   }
 
   def hppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean, nodeMode: Boolean, onlyNodeRef: Boolean = false): Seq[SymbolReference] = m match {
-    case d: MDef => d.body match {
+    case d: MDef =>
+      val nodeRecordImport = s"${spec.nodeIncludeCpp}/${d.name}"
+      d.body match {
       case i: Interface =>
         val base = if (d.name != exclude) {
 
@@ -122,7 +124,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
             List(ImportRef("<memory>"), ImportRef(cppInterfaceImport), ImportRef(nodeInterfaceImport))
           } else if(nodeMode && onlyNodeRef) {
             List(ImportRef(cppInterfaceImport))
-          }else{
+          } else {
             List(ImportRef("<memory>"), ImportRef(cppInterfaceImport))
           }
 
@@ -132,12 +134,34 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           case Some(nnHdr) => ImportRef(nnHdr) :: base
           case _ => base
         }
+      case r: Record =>
+        if (d.name != exclude) {
+          val localOnlyNodeRef = true
+          var listOfReferences : Seq[SymbolReference] = List(ImportRef(include(nodeRecordImport, r.ext.cpp)))
+          for (f <- r.fields) {
+            val args = f.ty.resolved.args
+            if(!args.isEmpty){
+              args.foreach((arg)=> {
+                listOfReferences = listOfReferences ++ hppReferences(arg.base, exclude, forwardDeclareOnly, nodeMode, localOnlyNodeRef)
+              })
+            }
+          }
+          listOfReferences
+        } else {
+          List()
+        }
+      case e: Enum =>
+        if (d.name != exclude) {
+          List(ImportRef(include(nodeRecordImport)))
+        } else {
+          List()
+        }
       case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
     }
     case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
   }
 
-  override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
+  /*override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
 
     if (!forwardDeclareOnly) {
       List()
@@ -177,7 +201,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
         case _ => List()
       }
     }
-  }
+  }*/
 
   override def include(ident: String, isExtendedRecord: Boolean = false): String = {
     val prefix = if (isExtendedRecord) spec.cppExtendedRecordIncludePrefix else spec.cppIncludePrefix
@@ -368,8 +392,8 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
       case p: MPrimitive => wr.wl(simpleCheckedCast(p.nodeJSName, false))
       case MString => wr.wl(simpleCheckedCast("String"))
       case MDate => {
-      	wr.wl(s"auto date_$converting = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
-      	wr.wl(s"auto $converted = Nan::New<Date>(date_$converting).ToLocalChecked();")
+        wr.wl(s"auto date_$converted = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
+        wr.wl(s"auto $converted = Nan::New<Date>(date_$converted).ToLocalChecked();")
       }
       case MBinary => fromCppContainer("Array", true)
       case MOptional => {
