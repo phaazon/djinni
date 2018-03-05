@@ -106,7 +106,9 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
   }
 
   def hppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean, nodeMode: Boolean): Seq[SymbolReference] = m match {
-    case d: MDef => d.body match {
+    case d: MDef =>
+      val nodeRecordImport = s"${spec.nodeIncludeCpp}/${d.name}"
+      d.body match {
       case i: Interface =>
         val base = if (d.name != exclude) {
 
@@ -131,12 +133,24 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           case Some(nnHdr) => ImportRef(nnHdr) :: base
           case _ => base
         }
+      case r: Record =>
+        if (d.name != exclude) {
+          List(ImportRef(include(nodeRecordImport, r.ext.cpp)))
+        } else {
+          List()
+        }
+      case e: Enum =>
+        if (d.name != exclude) {
+          List(ImportRef(include(nodeRecordImport)))
+        } else {
+          List()
+        }
       case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
     }
     case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
   }
 
-  override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
+  /*override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
 
     if (!forwardDeclareOnly) {
       List()
@@ -162,7 +176,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
         case _ => List()
       }
     }
-  }
+  }*/
 
   override def include(ident: String, isExtendedRecord: Boolean = false): String = {
     val prefix = if (isExtendedRecord) spec.cppExtendedRecordIncludePrefix else spec.cppIncludePrefix
