@@ -105,7 +105,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     ret.fold("void")(toNodeType(_, Some(spec.cppNamespace)))
   }
 
-  def hppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean, nodeMode: Boolean): Seq[SymbolReference] = m match {
+  def hppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean, nodeMode: Boolean, onlyNodeRef: Boolean = false): Seq[SymbolReference] = m match {
     case d: MDef =>
       val nodeRecordImport = s"${spec.nodeIncludeCpp}/${d.name}"
       d.body match {
@@ -120,8 +120,10 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           cppInterfaceImport = s"""$cppInterfaceImport.${spec.cppHeaderExt}""""
           val nodeInterfaceImport = s""""${spec.nodeIncludeCpp}/${d.name}.${spec.cppHeaderExt}""""
 
-          if (nodeMode) {
+          if (nodeMode && !onlyNodeRef) {
             List(ImportRef("<memory>"), ImportRef(cppInterfaceImport), ImportRef(nodeInterfaceImport))
+          } else if(nodeMode && onlyNodeRef) {
+            List(ImportRef(cppInterfaceImport))
           } else {
             List(ImportRef("<memory>"), ImportRef(cppInterfaceImport))
           }
@@ -135,7 +137,17 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
         }
       case r: Record =>
         if (d.name != exclude) {
-          List(ImportRef(include(nodeRecordImport, r.ext.cpp)))
+          val localOnlyNodeRef = true
+          var listOfReferences : Seq[SymbolReference] = List(ImportRef(include(nodeRecordImport, r.ext.cpp)))
+          for (f <- r.fields) {
+            val args = f.ty.resolved.args
+            if(!args.isEmpty){
+              args.foreach((arg)=> {
+                listOfReferences = listOfReferences ++ hppReferences(arg.base, exclude, forwardDeclareOnly, nodeMode, localOnlyNodeRef)
+              })
+            }
+          }
+          listOfReferences
         } else {
           List()
         }
