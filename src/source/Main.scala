@@ -217,6 +217,9 @@ object Main {
         .text("Way of specifying if file generation should be skipped (default: false)")
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> add Swift opt on Main.scala
       // Swift opt
       opt[File]("swift-out").valueName("<out-folder>").foreach(x => swiftOutFolder = Some(x))
         .text("The output folder for swift interfaces files (Generator disabled if unspecified)")
@@ -225,8 +228,11 @@ object Main {
       opt[String]("swift-umbrella-header").valueName("<filename>").foreach(swiftUmbrellaHeaderFilename = _)
         .text("Name of the umbrella header file (default: umbrella.h)")
 
+<<<<<<< HEAD
 =======
 >>>>>>> Integrate Nodejs code generation
+=======
+>>>>>>> add Swift opt on Main.scala
       // NodeJS opt
       opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
         .text("The output folder for NodeJS files (Generator disabled if unspecified)")
