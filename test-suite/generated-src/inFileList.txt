@@ -18,9 +18,13 @@ djinni/extended_record.djinni
 <<<<<<< HEAD
 djinni/varnames.djinni
 djinni/relative_paths.djinni
+<<<<<<< HEAD
 djinni/date.djinni
 djinni/date.yaml
 =======
+=======
+djinni/enum_flags.djinni
+>>>>>>> Separate `flags` to `enum_flags.djinni` (#346)
 djinni/vendor/third-party/date.djinni
 djinni/vendor/third-party/date.yaml
 >>>>>>> Add test case for relative path not using include paths
