@@ -18,6 +18,7 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
   protected val marshal = new NodeJsMarshal(spec)
   protected val cppMarshal = new CppMarshal(spec)
 
+<<<<<<< HEAD
   class CppRefs(name: String) {
     val hpp = mutable.TreeSet[String]()
     val hppFwds = mutable.TreeSet[String]()
@@ -48,6 +49,8 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
     }
   }
 
+=======
+>>>>>>> first proto for Node.js documentation
   override def generateInterface(origin: String, ident: Ident, doc: Doc, typeParams: Seq[TypeParam], i: Interface): Unit = {
 
     val isNodeMode = true
@@ -82,7 +85,7 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
             val constFlag = if (m.const) " const" else ""
             w.wl
             w.wl(s"$ret $baseClassName::$methodName${params.mkString("(", ", ", ")")}$constFlag").braced {
-
+              w.wl("Nan::HandleScope scope;")
               /*
                 Special treatment for Callbacks
                 We consider "Callback" a keyword to be contained in all callback objects,
@@ -96,15 +99,14 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
               val isCallback = methodName.contains("onCallback") &&
                 idNode.ty(ident.name).contains("Callback") &&
                 (m.params.length == 2)
-              
+
               w.wl("//Wrap parameters")
               val countArgs = checkAndCastTypes(ident, i, m, w)
 
-              if(isCallback){
+              if (isCallback) {
 
                 val errorName = m.params(1).ident.name
 
-                w.wl("Nan::HandleScope scope;")
                 w.wl("auto local_resolver = Nan::New<Promise::Resolver>(pers_resolver);")
                 w.wl(s"if($errorName)").braced {
                   w.wl("auto rejected = local_resolver->Reject(Nan::GetCurrentContext(), arg_1);")
@@ -169,10 +171,10 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
       m.ret.foreach((x) => refs.find(x, true, nodeMode))
     })
 
-    if(refs.hpp("#include <memory>") &&
-      refs.cpp("#include <memory>")){
+    if (refs.hpp("#include <memory>") &&
+      refs.cpp("#include <memory>")) {
       refs.cpp.remove("#include <memory>")
-    }else if (!nodeMode &&
+    } else if (!nodeMode &&
       //For C++ interfaces we always have shared_ptr for c++ implementation member
       !refs.hpp("#include <memory>") &&
       !refs.cpp("#include <memory>")) {
@@ -262,7 +264,7 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
             // Destructor
             w.wl(s"~$className()").bracedSemi {
               w.wl("njs_impl.Reset();")
-              if(ident.name.contains("Callback")){
+              if (ident.name.contains("Callback")) {
                 w.wl("pers_resolver.Reset();")
               }
             }
@@ -284,7 +286,7 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
             }
 
             //Setter for promise
-            if(ident.name.contains("Callback")){
+            if (ident.name.contains("Callback")) {
               w.wl("void SetPromise(Local<Promise::Resolver> resolver)").braced {
                 w.wl("pers_resolver.Reset(resolver);")
               }
@@ -315,7 +317,7 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
             w.wl("Nan::Persistent<Object> njs_impl;")
 
             //Persistent promise
-            if(ident.name.contains("Callback")){
+            if (ident.name.contains("Callback")) {
               w.wl("Nan::Persistent<Promise::Resolver> pers_resolver;")
             }
 
@@ -469,6 +471,9 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
 
   override def generateRecord(origin: String, ident: Ident, doc: Doc, params: Seq[TypeParam], r: Record): Unit = {}
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> first proto for Node.js documentation
 
   class CppRefs(name: String) {
     val hpp = mutable.TreeSet[String]()
@@ -479,17 +484,21 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
       find(ty.resolved, forwardDeclareOnly, nodeMode)
     }
 
+<<<<<<< HEAD
     def find(tm: MExpr, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
       tm.args.foreach((x) => find(x, forwardDeclareOnly, nodeMode))
       find(tm.base, forwardDeclareOnly, nodeMode)
     }
 
+=======
+>>>>>>> first proto for Node.js documentation
     def find(m: Meta, forwardDeclareOnly: Boolean, nodeMode: Boolean) = {
       for (r <- marshal.hppReferences(m, name, forwardDeclareOnly, nodeMode)) r match {
         case ImportRef(arg) => hpp.add("#include " + arg)
         case DeclRef(decl, Some(spec.cppNamespace)) => hppFwds.add(decl)
         case DeclRef(_, _) =>
       }
+<<<<<<< HEAD
       for (r <- marshal.cppReferences(m, name, forwardDeclareOnly)) r match {
         case ImportRef(arg) => cpp.add("#include " + arg)
         case DeclRef(_, _) =>
@@ -499,6 +508,15 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
 >>>>>>> Integrate Nodejs code generation
 =======
 >>>>>>> add context for records with +c interface field
+=======
+    }
+
+    def find(tm: MExpr, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
+      tm.args.foreach((x) => find(x, forwardDeclareOnly, nodeMode))
+      find(tm.base, forwardDeclareOnly, nodeMode)
+    }
+  }
+>>>>>>> first proto for Node.js documentation
 }
 
 
