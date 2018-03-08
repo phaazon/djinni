@@ -119,9 +119,6 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
   }
 
   def hppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean, nodeMode: Boolean, onlyNodeRef: Boolean = false): Seq[SymbolReference] = m match {
-<<<<<<< HEAD
-    case d: MDef => d.body match {
-=======
     case MOptional =>
       //If cppOptionalHeader is relative path, we have to concatenate with cpp include path
       var importRef = spec.cppOptionalHeader
@@ -133,82 +130,58 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     case d: MDef =>
       val nodeRecordImport = s"${spec.nodeIncludeCpp}/${d.name}"
       d.body match {
->>>>>>> Handle optional include depending on if it's a relative path or not
-      case i: Interface =>
-        val base = if (d.name != exclude) {
+        case i: Interface =>
+          val base = if (d.name != exclude) {
 
-          var cppInterfaceImport = s""""${idNode.ty(d.name)}"""
-          if (i.ext.cpp) {
-            cppInterfaceImport = s"${cppInterfaceImport}Cpp"
+            var cppInterfaceImport = s""""${idNode.ty(d.name)}"""
+            if (i.ext.cpp) {
+              cppInterfaceImport = s"${cppInterfaceImport}Cpp"
+            }
+
+            cppInterfaceImport = s"""$cppInterfaceImport.${spec.cppHeaderExt}""""
+            val nodeInterfaceImport = s""""${spec.nodeIncludeCpp}/${d.name}.${spec.cppHeaderExt}""""
+
+            if (nodeMode && !onlyNodeRef) {
+              List(ImportRef("<memory>"), ImportRef(cppInterfaceImport), ImportRef(nodeInterfaceImport))
+            } else if(nodeMode && onlyNodeRef) {
+              List(ImportRef(cppInterfaceImport))
+            } else {
+              List(ImportRef("<memory>"), ImportRef(cppInterfaceImport))
+            }
+
+          } else List(ImportRef("<memory>"))
+
+          spec.cppNnHeader match {
+            case Some(nnHdr) => ImportRef(nnHdr) :: base
+            case _ => base
           }
-
-          cppInterfaceImport = s"""$cppInterfaceImport.${spec.cppHeaderExt}""""
-          val nodeInterfaceImport = s""""${spec.nodeIncludeCpp}/${d.name}.${spec.cppHeaderExt}""""
-
-          if (nodeMode && !onlyNodeRef) {
-            List(ImportRef("<memory>"), ImportRef(cppInterfaceImport), ImportRef(nodeInterfaceImport))
-          } else if(nodeMode && onlyNodeRef) {
-            List(ImportRef(cppInterfaceImport))
-          }else{
-            List(ImportRef("<memory>"), ImportRef(cppInterfaceImport))
+        case r: Record =>
+          if (d.name != exclude) {
+            val localOnlyNodeRef = true
+            var listOfReferences : Seq[SymbolReference] = List(ImportRef(include(nodeRecordImport, r.ext.cpp)))
+            for (f <- r.fields) {
+              val args = f.ty.resolved.args
+              if(!args.isEmpty){
+                args.foreach((arg)=> {
+                  listOfReferences = listOfReferences ++ hppReferences(arg.base, exclude, forwardDeclareOnly, nodeMode, localOnlyNodeRef)
+                })
+              }
+            }
+            listOfReferences
+          } else {
+            List()
           }
-
-        } else List(ImportRef("<memory>"))
-
-        spec.cppNnHeader match {
-          case Some(nnHdr) => ImportRef(nnHdr) :: base
-          case _ => base
-        }
-      case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
-    }
+        case e: Enum =>
+          if (d.name != exclude) {
+            List(ImportRef(include(nodeRecordImport)))
+          } else {
+            List()
+          }
+        case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
+      }
     case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
   }
 
-<<<<<<< HEAD
-  override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
-
-    if (!forwardDeclareOnly) {
-      List()
-    } else {
-      m match {
-        case d: MDef =>
-          val nodeRecordImport = s"${spec.nodeIncludeCpp}/${d.name}"
-          d.body match {
-            case r: Record =>
-              if (d.name != exclude) {
-                var listOfReferences : Seq[SymbolReference] = List()
-                for (f <- r.fields) {
-                  val args = f.ty.resolved.args
-                  if(!args.isEmpty){
-                    args.foreach((arg)=> {
-                      listOfReferences = listOfReferences ++ cppReferences(arg.base, exclude, forwardDeclareOnly)
-                    })
-                  }
-                }
-                listOfReferences
-              } else {
-                List()
-              }
-            case e: Enum =>
-              if (d.name != exclude) {
-                List(ImportRef(include(nodeRecordImport)))
-              } else {
-                List()
-              }
-            case i: Interface =>
-              val nodeMode = true
-              val onlyNodeRef = true
-              hppReferences(m, exclude, forwardDeclareOnly, nodeMode, onlyNodeRef)
-            case _ => List()
-
-          }
-        case _ => List()
-      }
-    }
-  }
-
-=======
->>>>>>> integrate Promises where we have callbacks
   override def include(ident: String, isExtendedRecord: Boolean = false): String = {
     val prefix = if (isExtendedRecord) spec.cppExtendedRecordIncludePrefix else spec.cppIncludePrefix
     q(prefix + spec.cppFileIdentStyle(ident) + "." + spec.cppHeaderExt)
@@ -411,18 +384,8 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
       case p: MPrimitive => wr.wl(simpleCheckedCast(p.nodeJSName, false))
       case MString => wr.wl(simpleCheckedCast("String"))
       case MDate => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-      	wr.wl(s"auto date_$converting = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
-      	wr.wl(s"auto $converted = Nan::New<Date>(date_$converting).ToLocalChecked();")
-=======
-        wr.wl(s"auto date_$converting = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
-        wr.wl(s"auto $converted = Nan::New<Date>(date_$converting).ToLocalChecked();")
->>>>>>> fix cast to v8 Date
-=======
         wr.wl(s"auto date_$converted = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
         wr.wl(s"auto $converted = Nan::New<Date>(date_$converted).ToLocalChecked();")
->>>>>>> fix date cast
       }
       case MBinary => fromCppContainer("Array", true)
       case MOptional => {

@@ -20,6 +20,8 @@ import java.io.{IOException, FileNotFoundException, FileInputStream, InputStream
 
 import djinni.generatorTools._
 
+import scala.util.{Failure, Success}
+
 object Main {
 
   def main(args: Array[String]) {
@@ -82,6 +84,7 @@ object Main {
     var yamlOutFolder: Option[File] = None
     var yamlOutFile: Option[String] = None
     var yamlPrefix: String = ""
+    var traceMethodsCalls = false
 
     // Swift variables
     var swiftTypePrefix = ""
@@ -216,10 +219,6 @@ object Main {
       opt[Boolean]("skip-generation").valueName("<true/false>").foreach(x => skipGeneration = x)
         .text("Way of specifying if file generation should be skipped (default: false)")
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> add Swift opt on Main.scala
       // Swift opt
       opt[File]("swift-out").valueName("<out-folder>").foreach(x => swiftOutFolder = Some(x))
         .text("The output folder for swift interfaces files (Generator disabled if unspecified)")
@@ -228,18 +227,10 @@ object Main {
       opt[String]("swift-umbrella-header").valueName("<filename>").foreach(swiftUmbrellaHeaderFilename = _)
         .text("Name of the umbrella header file (default: umbrella.h)")
 
-<<<<<<< HEAD
-=======
->>>>>>> Integrate Nodejs code generation
-=======
->>>>>>> add Swift opt on Main.scala
       // NodeJS opt
       opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
         .text("The output folder for NodeJS files (Generator disabled if unspecified)")
       opt[String]("node-package").valueName("<package-name>").foreach(nodePackage = _)
-<<<<<<< HEAD
-        .text("The javascript object hierarchy (inserted in root object by default)")
-=======
         .text("The name of packaged node module")
       opt[String]("node-include-cpp").valueName("<prefix>").foreach(nodeIncludeCpp = _)
         .text("The relative path from node-out to cpp-out")
@@ -249,7 +240,6 @@ object Main {
       // Debug opt
       opt[Boolean]("trace").valueName("<enable>").foreach(x => traceMethodsCalls = x)
         .text("If true, CPP calls will be printed on standard output")
->>>>>>> Integrate Nodejs code generation
 
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
@@ -330,12 +320,6 @@ object Main {
     }
 
     // Resolve names in IDL file, check types.
-<<<<<<< HEAD
-    System.out.println("Resolving...")
-    resolver.resolve(meta.defaults, idl) match {
-      case Some(err) =>
-        System.err.println(err)
-=======
     System.out.println("Preprocessing...")
     preprocessor.resolveTemplates(meta.defaults, idl) match {
       case Success((meta, idl)) =>
@@ -443,104 +427,8 @@ object Main {
         }
       case Failure(ex) =>
         System.err.println(ex)
->>>>>>> Integrate Nodejs code generation
         System.exit(1); return
-      case _ =>
     }
 
-<<<<<<< HEAD
-    System.out.println("Generating...")
-    val outFileListWriter = if (outFileListPath.isDefined) {
-      if (outFileListPath.get.getParentFile != null)
-        createFolder("output file list", outFileListPath.get.getParentFile)
-      Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
-    } else {
-      None
-    }
-    val objcSwiftBridgingHeaderWriter = if (objcSwiftBridgingHeader.isDefined && objcOutFolder.isDefined) {
-      val objcSwiftBridgingHeaderFile = new File(objcOutFolder.get.getPath, objcSwiftBridgingHeader.get + ".h")
-      if (objcSwiftBridgingHeaderFile.getParentFile != null)
-        createFolder("output file list", objcSwiftBridgingHeaderFile.getParentFile)
-      Some(new BufferedWriter(new FileWriter(objcSwiftBridgingHeaderFile)))
-    } else {
-      None
-    }
-
-    val outSpec = Spec(
-      javaOutFolder,
-      javaPackage,
-      javaClassAccessModifier,
-      javaIdentStyle,
-      javaCppException,
-      javaAnnotation,
-      javaNullableAnnotation,
-      javaNonnullAnnotation,
-      javaImplementAndroidOsParcelable,
-      javaUseFinalForRecord,
-      cppOutFolder,
-      cppHeaderOutFolder,
-      cppIncludePrefix,
-      cppExtendedRecordIncludePrefix,
-      cppNamespace,
-      cppIdentStyle,
-      cppFileIdentStyle,
-      cppOptionalTemplate,
-      cppOptionalHeader,
-      cppEnumHashWorkaround,
-      cppNnHeader,
-      cppNnType,
-      cppNnCheckExpression,
-      cppUseWideStrings,
-      jniOutFolder,
-      jniHeaderOutFolder,
-      jniIncludePrefix,
-      jniIncludeCppPrefix,
-      jniNamespace,
-      jniClassIdentStyle,
-      jniFileIdentStyle,
-      jniBaseLibIncludePrefix,
-      cppExt,
-      cppHeaderExt,
-      objcOutFolder,
-      objcppOutFolder,
-      objcIdentStyle,
-      objcFileIdentStyle,
-      objcppExt,
-      objcHeaderExt,
-      objcIncludePrefix,
-      objcExtendedRecordIncludePrefix,
-      objcppIncludePrefix,
-      objcppIncludeCppPrefix,
-      objcppIncludeObjcPrefix,
-      objcppNamespace,
-      objcBaseLibIncludePrefix,
-      objcSwiftBridgingHeaderWriter,
-      outFileListWriter,
-      skipGeneration,
-      yamlOutFolder,
-      yamlOutFile,
-      yamlPrefix,
-      swiftOutFolder,
-      swiftTypePrefix,
-      swiftUmbrellaHeaderFilename,
-      nodeOutFolder,
-      nodePackage
-    )
-
-
-    try {
-      val r = generate(idl, outSpec)
-      r.foreach(e => System.err.println("Error generating output: " + e))
-    }
-    finally {
-      if (outFileListWriter.isDefined) {
-        outFileListWriter.get.close()
-      }
-      if (objcSwiftBridgingHeaderWriter.isDefined) {
-        objcSwiftBridgingHeaderWriter.get.close()
-      }
-    }
-=======
->>>>>>> Integrate Nodejs code generation
   }
 }

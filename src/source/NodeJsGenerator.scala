@@ -7,50 +7,10 @@ import djinni.meta._
 import scala.collection.mutable
 
 class NodeJsGenerator(spec: Spec) extends Generator(spec) {
-<<<<<<< HEAD
-  override def generateEnum(origin: String, ident: Ident, doc: Doc, e: Enum): Unit = ???
-
-  override def generateInterface(origin: String, ident: Ident, doc: Doc, typeParams: Seq[TypeParam], i: Interface): Unit = ???
-
-  override def generateRecord(origin: String, ident: Ident, doc: Doc, params: Seq[TypeParam], r: Record): Unit = ???
-=======
 
   protected val marshal = new NodeJsMarshal(spec)
   protected val cppMarshal = new CppMarshal(spec)
 
-<<<<<<< HEAD
-  class CppRefs(name: String) {
-    val hpp = mutable.TreeSet[String]()
-    val hppFwds = mutable.TreeSet[String]()
-    val cpp = mutable.TreeSet[String]()
-
-    def find(ty: TypeRef, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
-      find(ty.resolved, forwardDeclareOnly, nodeMode)
-    }
-
-    def find(tm: MExpr, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
-      tm.args.foreach((x) => find(x, forwardDeclareOnly, nodeMode))
-      find(tm.base, forwardDeclareOnly, nodeMode)
-    }
-
-    def find(m: Meta, forwardDeclareOnly: Boolean, nodeMode: Boolean) = {
-      for (r <- marshal.hppReferences(m, name, forwardDeclareOnly, nodeMode)) r match {
-        case ImportRef(arg) => hpp.add("#include " + arg)
-        case DeclRef(decl, Some(spec.cppNamespace)) => hppFwds.add(decl)
-        case DeclRef(_, _) =>
-      }
-<<<<<<< HEAD
-      for (r <- marshal.cppReferences(m, name, forwardDeclareOnly)) r match {
-        case ImportRef(arg) => cpp.add("#include " + arg)
-        case DeclRef(_, _) =>
-      }
-=======
->>>>>>> Handle optional include depending on if it's a relative path or not
-    }
-  }
-
-=======
->>>>>>> first proto for Node.js documentation
   override def generateInterface(origin: String, ident: Ident, doc: Doc, typeParams: Seq[TypeParam], i: Interface): Unit = {
 
     val isNodeMode = true
@@ -470,10 +430,6 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
   override def generateEnum(origin: String, ident: Ident, doc: Doc, e: Enum): Unit = {}
 
   override def generateRecord(origin: String, ident: Ident, doc: Doc, params: Seq[TypeParam], r: Record): Unit = {}
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> first proto for Node.js documentation
 
   class CppRefs(name: String) {
     val hpp = mutable.TreeSet[String]()
@@ -484,31 +440,12 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
       find(ty.resolved, forwardDeclareOnly, nodeMode)
     }
 
-<<<<<<< HEAD
-    def find(tm: MExpr, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
-      tm.args.foreach((x) => find(x, forwardDeclareOnly, nodeMode))
-      find(tm.base, forwardDeclareOnly, nodeMode)
-    }
-
-=======
->>>>>>> first proto for Node.js documentation
     def find(m: Meta, forwardDeclareOnly: Boolean, nodeMode: Boolean) = {
       for (r <- marshal.hppReferences(m, name, forwardDeclareOnly, nodeMode)) r match {
         case ImportRef(arg) => hpp.add("#include " + arg)
         case DeclRef(decl, Some(spec.cppNamespace)) => hppFwds.add(decl)
         case DeclRef(_, _) =>
       }
-<<<<<<< HEAD
-      for (r <- marshal.cppReferences(m, name, forwardDeclareOnly)) r match {
-        case ImportRef(arg) => cpp.add("#include " + arg)
-        case DeclRef(_, _) =>
-      }
-    }
-  }
->>>>>>> Integrate Nodejs code generation
-=======
->>>>>>> add context for records with +c interface field
-=======
     }
 
     def find(tm: MExpr, forwardDeclareOnly: Boolean, nodeMode: Boolean) {
@@ -516,7 +453,6 @@ class NodeJsGenerator(spec: Spec) extends Generator(spec) {
       find(tm.base, forwardDeclareOnly, nodeMode)
     }
   }
->>>>>>> first proto for Node.js documentation
 }
 
 

@@ -35,8 +35,7 @@ intellij-plugin/djinni.jar
 # profiling output
 callgrind.out.*
 
-<<<<<<< HEAD
 .idea/
-=======
+
 example/generated-src/
->>>>>>> add NodeJs generation in generator
+
