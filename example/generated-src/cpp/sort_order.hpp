@@ -12,6 +12,8 @@ enum class sort_order : int {
     DESCENDING,
     RANDOM,
 };
+std::string to_string(const sort_order& sort_order);
+std::ostream &operator<<(std::ostream &os, const sort_order &o);
 
 }  // namespace textsort
 
