@@ -369,12 +369,17 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
       case MString => wr.wl(simpleCheckedCast("String"))
       case MDate => {
 <<<<<<< HEAD
+<<<<<<< HEAD
       	wr.wl(s"auto date_$converting = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
       	wr.wl(s"auto $converted = Nan::New<Date>(date_$converting).ToLocalChecked();")
 =======
         wr.wl(s"auto date_$converting = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
         wr.wl(s"auto $converted = Nan::New<Date>(date_$converting).ToLocalChecked();")
 >>>>>>> fix cast to v8 Date
+=======
+        wr.wl(s"auto date_$converted = chrono::duration_cast<chrono::seconds>(${converting}.time_since_epoch()).count();")
+        wr.wl(s"auto $converted = Nan::New<Date>(date_$converted).ToLocalChecked();")
+>>>>>>> fix date cast
       }
       case MBinary => fromCppContainer("Array", true)
       case MOptional => {
