@@ -35,7 +35,5 @@ intellij-plugin/djinni.jar
 # profiling output
 callgrind.out.*
 
-.idea/
-
 example/generated-src/
 
