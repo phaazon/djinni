@@ -15,9 +15,14 @@ djinni/constants.djinni
 djinni/multiple_inheritance.djinni
 djinni/single_language_interfaces.djinni
 djinni/extended_record.djinni
+<<<<<<< HEAD
 djinni/varnames.djinni
 djinni/relative_paths.djinni
 djinni/date.djinni
 djinni/date.yaml
+=======
+djinni/vendor/third-party/date.djinni
+djinni/vendor/third-party/date.yaml
+>>>>>>> Add test case for relative path not using include paths
 djinni/vendor/third-party/duration.djinni
 djinni/vendor/third-party/duration.yaml
