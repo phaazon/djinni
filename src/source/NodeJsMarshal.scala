@@ -151,6 +151,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     case _ => super.hppReferences(m, exclude, forwardDeclareOnly)
   }
 
+<<<<<<< HEAD
   override def cppReferences(m: Meta, exclude: String, forwardDeclareOnly: Boolean): Seq[SymbolReference] = {
 
     if (!forwardDeclareOnly) {
@@ -193,6 +194,8 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     }
   }
 
+=======
+>>>>>>> integrate Promises where we have callbacks
   override def include(ident: String, isExtendedRecord: Boolean = false): String = {
     val prefix = if (isExtendedRecord) spec.cppExtendedRecordIncludePrefix else spec.cppIncludePrefix
     q(prefix + spec.cppFileIdentStyle(ident) + "." + spec.cppHeaderExt)
@@ -322,6 +325,15 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
               wr.wl(s"auto $converted = njs_ptr_$converted->getCppImpl();")
             }else{
               wr.wl(s"std::shared_ptr<$nodeType> $converted(njs_ptr_$converted);")
+
+              //Set promise if it is a callback
+              if(d.name.contains("Callback")){
+                wr.wl
+                wr.wl("//Create promise and set it into Callcack")
+                wr.wl("auto resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();")
+                wr.wl(s"$converted->SetPromise(resolver);")
+              }
+
             }
             wr.wl
         }
