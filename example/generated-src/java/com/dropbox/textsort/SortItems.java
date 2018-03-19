@@ -11,6 +11,8 @@ import javax.annotation.Nonnull;
     /** For the iOS / Android demo */
     public abstract void sort(@Nonnull SortOrder order, @Nonnull ItemList items);
 
+    public abstract int count();
+
     @CheckForNull
     public static native SortItems createWithListener(@CheckForNull TextboxListener listener);
 
@@ -48,5 +50,13 @@ import javax.annotation.Nonnull;
             native_sort(this.nativeRef, order, items);
         }
         private native void native_sort(long _nativeRef, SortOrder order, ItemList items);
+
+        @Override
+        public int count()
+        {
+            assert !this.destroyed.get() : "trying to use a destroyed object";
+            return native_count(this.nativeRef);
+        }
+        private native int native_count(long _nativeRef);
     }
 }

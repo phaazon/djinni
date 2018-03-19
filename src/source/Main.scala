@@ -97,6 +97,10 @@ object Main {
     var nodeOutFolder: Option[File] = None
     var nodeTypePrefix: String = ""
     var nodeFileIdentStyleOptional: Option[IdentConverter] = None
+    //React Native
+    var reactIncludeObjc = ""
+    var reactNativeOutFolder: Option[File] = None
+    var reactNativeTypePrefix: String = ""
 
     val argParser = new scopt.OptionParser[Unit]("djinni") {
 
@@ -236,6 +240,14 @@ object Main {
         .text("The relative path from node-out to cpp-out")
       opt[String]("node-type-prefix").valueName("<pre>").foreach(nodeTypePrefix = _)
         .text("The prefix for Node data types (usually two or three letters)")
+
+      //React Native
+      opt[File]("react-native-out").valueName("<out-folder>").foreach(x => reactNativeOutFolder = Some(x))
+        .text("The output folder for React Native files (Generator disabled if unspecified)")
+      opt[String]("react-include-objc").valueName("<prefix>").foreach(reactIncludeObjc = _)
+        .text("The relative path from react-native-out to objc-out")
+      opt[String]("react-native-type-prefix").valueName("<pre>").foreach(reactNativeTypePrefix = _)
+        .text("The prefix for React Native data types (usually two or three letters)")
 
       // Debug opt
       opt[Boolean]("trace").valueName("<enable>").foreach(x => traceMethodsCalls = x)
@@ -411,6 +423,9 @@ object Main {
           nodeIncludeCpp,
           nodeIdentStyle,
           nodeFileIdentStyle,
+          reactIncludeObjc,
+          reactNativeOutFolder,
+          reactNativeTypePrefix,
           traceMethodsCalls)
 
         try {
