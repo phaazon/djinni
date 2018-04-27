@@ -42,13 +42,17 @@ sealed abstract class TypeDecl {
   val params: Seq[TypeParam]
   val body: TypeDef
   val origin: String
+
+  override def equals(obj: scala.Any): Boolean = obj.isInstanceOf[TypeDecl] && obj.asInstanceOf[TypeDecl].ident.name == ident.name
+
+  override def hashCode(): Int = ident.name.hashCode
 }
 case class InternTypeDecl(override val ident: Ident, override val params: Seq[TypeParam], override val body: TypeDef, doc: Doc, override val origin: String) extends TypeDecl
 case class ExternTypeDecl(override val ident: Ident, override val params: Seq[TypeParam], override val body: TypeDef, properties: Map[String, Any], override val origin: String) extends TypeDecl
 
-case class Ext(java: Boolean, cpp: Boolean, objc: Boolean, swift: Boolean, nodeJS: Boolean) {
+case class Ext(java: Boolean, cpp: Boolean, objc: Boolean, swift: Boolean, nodeJS: Boolean, reactNative: Boolean) {
   def any(): Boolean = {
-    java || cpp || objc || (objc && swift) || nodeJS
+    java || cpp || objc || (objc && swift) || nodeJS || reactNative
   }
 }
 
@@ -61,22 +65,30 @@ sealed abstract class TypeDef
 
 case class Const(ident: Ident, ty: TypeRef, value: Any, doc: Doc)
 
-case class Enum(options: Seq[Enum.Option]) extends TypeDef
+case class Enum(options: Seq[Enum.Option], flags: Boolean) extends TypeDef
 object Enum {
-  case class Option(ident: Ident, doc: Doc)
+  object SpecialFlag extends Enumeration {
+    type SpecialFlag = Value
+    val NoFlags, AllFlags = Value
+  }
+  import SpecialFlag._
+  case class Option(ident: Ident, doc: Doc, specialFlag: scala.Option[SpecialFlag])
 }
 
 case class Record(ext: Ext, fields: Seq[Field], consts: Seq[Const], derivingTypes: Set[DerivingType]) extends TypeDef
 object Record {
   object DerivingType extends Enumeration {
     type DerivingType = Value
-    val Eq, Ord = Value
+    val Eq, Ord, AndroidParcelable = Value
   }
 }
-
-case class Interface(ext: Ext, methods: Seq[Interface.Method], consts: Seq[Const]) extends TypeDef
+case class Interface(ext: Ext, methods: Seq[Interface.Method], consts: Seq[Const], generic: Seq[GenericType]) extends TypeDef
 object Interface {
   case class Method(ident: Ident, params: Seq[Field], ret: Option[TypeRef], doc: Doc, static: Boolean, const: Boolean)
+}
+
+case class GenericType(placeholder: String) {
+  println(s"PLACEHOLDER $placeholder")
 }
 
 case class Field(ident: Ident, ty: TypeRef, doc: Doc)

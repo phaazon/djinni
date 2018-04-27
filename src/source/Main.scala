@@ -16,14 +16,17 @@
 
 package djinni
 
-import java.io.{IOException, FileInputStream, InputStreamReader, File, BufferedWriter, FileWriter}
+import java.io.{IOException, FileNotFoundException, FileInputStream, InputStreamReader, File, BufferedWriter, FileWriter}
 
 import djinni.generatorTools._
+
+import scala.util.{Failure, Success}
 
 object Main {
 
   def main(args: Array[String]) {
     var idlFile: File = null
+    var idlIncludePaths: List[String] = List("")
     var cppOutFolder: Option[File] = None
     var cppNamespace: String = ""
     var cppIncludePrefix: String = ""
@@ -43,6 +46,7 @@ object Main {
     var javaAnnotation: Option[String] = None
     var javaNullableAnnotation: Option[String] = None
     var javaNonnullAnnotation: Option[String] = None
+    var javaImplementAndroidOsParcelable : Boolean = false
     var javaUseFinalForRecord: Boolean = true
     var jniOutFolder: Option[File] = None
     var jniHeaderOutFolderOptional: Option[File] = None
@@ -67,6 +71,7 @@ object Main {
     var objcTypePrefix: String = ""
     var objcIncludePrefix: String = ""
     var objcExtendedRecordIncludePrefix: String = ""
+    var objcSwiftBridgingHeader: Option[String] = None
     var objcppIncludePrefix: String = ""
     var objcppIncludeCppPrefix: String = ""
     var objcppIncludeObjcPrefixOptional: Option[String] = None
@@ -79,6 +84,7 @@ object Main {
     var yamlOutFolder: Option[File] = None
     var yamlOutFile: Option[String] = None
     var yamlPrefix: String = ""
+    var traceMethodsCalls = false
 
     // Swift variables
     var swiftTypePrefix = ""
@@ -86,7 +92,17 @@ object Main {
     var swiftOutFolder: Option[File] = None
     // NodeJS variables
     var nodePackage = ""
+    var nodeIncludeCpp = ""
+    var nodeIdentStyle = IdentStyle.nodeDefault
     var nodeOutFolder: Option[File] = None
+    var nodeTypePrefix: String = ""
+    var nodeFileIdentStyleOptional: Option[IdentConverter] = None
+    //React Native
+    var reactIncludeObjc = ""
+    var reactIncludeObjcImpl = ""
+    var reactNativeOutFolder: Option[File] = None
+    var reactNativeTypePrefix: String = ""
+    var reactNativeObjcImplSuffix: String = ""
 
     val argParser = new scopt.OptionParser[Unit]("djinni") {
 
@@ -103,6 +119,8 @@ object Main {
       help("help")
       opt[File]("idl").valueName("<in-file>").required().foreach(idlFile = _)
         .text("The IDL file with the type definitions, typically with extension \".djinni\".")
+      opt[String]("idl-include-path").valueName("<path> ...").optional().unbounded().foreach(x => idlIncludePaths = idlIncludePaths :+ x)
+        .text("An include path to search for Djinni @import directives. Can specify multiple paths.")
       note("")
       opt[File]("java-out").valueName("<out-folder>").foreach(x => javaOutFolder = Some(x))
         .text("The output for the Java files (Generator disabled if unspecified).")
@@ -118,6 +136,8 @@ object Main {
         .text("Java annotation (@Nullable) to place on all fields and return values that are optional")
       opt[String]("java-nonnull-annotation").valueName("<nonnull-annotation-class>").foreach(x => javaNonnullAnnotation = Some(x))
         .text("Java annotation (@Nonnull) to place on all fields and return values that are not optional")
+      opt[Boolean]("java-implement-android-os-parcelable").valueName("<true/false>").foreach(x => javaImplementAndroidOsParcelable = x)
+        .text("all generated java classes will implement the interface android.os.Parcelable")
       opt[Boolean]("java-use-final-for-record").valueName("<use-final-for-record>").foreach(x => javaUseFinalForRecord = x)
         .text("Whether generated Java classes for records should be marked 'final' (default: true). ")
       note("")
@@ -169,6 +189,8 @@ object Main {
         .text("The prefix for Objective-C data types (usually two or three letters)")
       opt[String]("objc-include-prefix").valueName("<prefix>").foreach(objcIncludePrefix = _)
         .text("The prefix for #import of header files from Objective-C files.")
+      opt[String]("objc-swift-bridging-header").valueName("<name>").foreach(x => objcSwiftBridgingHeader = Some(x))
+        .text("The name of Objective-C Bridging Header used in XCode's Swift projects.")
       note("")
       opt[File]("objcpp-out").valueName("<out-folder>").foreach(x => objcppOutFolder = Some(x))
         .text("The output folder for private Objective-C++ files (Generator disabled if unspecified).")
@@ -215,11 +237,32 @@ object Main {
       opt[File]("node-out").valueName("<out-folder>").foreach(x => nodeOutFolder = Some(x))
         .text("The output folder for NodeJS files (Generator disabled if unspecified)")
       opt[String]("node-package").valueName("<package-name>").foreach(nodePackage = _)
-        .text("The javascript object hierarchy (inserted in root object by default)")
+        .text("The name of packaged node module")
+      opt[String]("node-include-cpp").valueName("<prefix>").foreach(nodeIncludeCpp = _)
+        .text("The relative path from node-out to cpp-out")
+      opt[String]("node-type-prefix").valueName("<pre>").foreach(nodeTypePrefix = _)
+        .text("The prefix for Node data types (usually two or three letters)")
+
+      //React Native
+      opt[File]("react-native-out").valueName("<out-folder>").foreach(x => reactNativeOutFolder = Some(x))
+        .text("The output folder for React Native files (Generator disabled if unspecified)")
+      opt[String]("react-include-objc").valueName("<prefix>").foreach(reactIncludeObjc = _)
+        .text("The relative path from react-native-out to objc-out")
+      opt[String]("react-include-objc-impl").valueName("<prefix>").foreach(reactIncludeObjcImpl = _)
+        .text("The relative path from react-native-out to objc implementation directory")
+      opt[String]("react-native-type-prefix").valueName("<pre>").foreach(reactNativeTypePrefix = _)
+        .text("The prefix for React Native data types (usually two or three letters)")
+      opt[String]("react-native-objc-impl-suffix").valueName("<pre>").foreach(reactNativeObjcImplSuffix = _)
+        .text("The suffix for objc implementations")
+
+      // Debug opt
+      opt[Boolean]("trace").valueName("<enable>").foreach(x => traceMethodsCalls = x)
+        .text("If true, CPP calls will be printed on standard output")
 
       note("\nIdentifier styles (ex: \"FooBar\", \"fooBar\", \"foo_bar\", \"FOO_BAR\", \"m_fooBar\")\n")
       identStyle("ident-java-enum",      c => { javaIdentStyle = javaIdentStyle.copy(enum = c) })
       identStyle("ident-java-field",     c => { javaIdentStyle = javaIdentStyle.copy(field = c) })
+      identStyle("ident-java-type",      c => { javaIdentStyle = javaIdentStyle.copy(ty = c) })
       identStyle("ident-cpp-enum",       c => { cppIdentStyle = cppIdentStyle.copy(enum = c) })
       identStyle("ident-cpp-field",      c => { cppIdentStyle = cppIdentStyle.copy(field = c) })
       identStyle("ident-cpp-method",     c => { cppIdentStyle = cppIdentStyle.copy(method = c) })
@@ -228,8 +271,8 @@ object Main {
       identStyle("ident-cpp-type-param", c => { cppIdentStyle = cppIdentStyle.copy(typeParam = c) })
       identStyle("ident-cpp-local",      c => { cppIdentStyle = cppIdentStyle.copy(local = c) })
       identStyle("ident-cpp-file",       c => { cppFileIdentStyle = c })
-      identStyle("ident-jni-class",           c => {jniClassIdentStyleOptional = Some(c)})
-      identStyle("ident-jni-file",            c => {jniFileIdentStyleOptional = Some(c)})
+      identStyle("ident-jni-class",      c => { jniClassIdentStyleOptional = Some(c)})
+      identStyle("ident-jni-file",       c => { jniFileIdentStyleOptional = Some(c)})
       identStyle("ident-objc-enum",       c => { objcIdentStyle = objcIdentStyle.copy(enum = c) })
       identStyle("ident-objc-field",      c => { objcIdentStyle = objcIdentStyle.copy(field = c) })
       identStyle("ident-objc-method",     c => { objcIdentStyle = objcIdentStyle.copy(method = c) })
@@ -237,7 +280,13 @@ object Main {
       identStyle("ident-objc-type-param", c => { objcIdentStyle = objcIdentStyle.copy(typeParam = c) })
       identStyle("ident-objc-local",      c => { objcIdentStyle = objcIdentStyle.copy(local = c) })
       identStyle("ident-objc-file",       c => { objcFileIdentStyleOptional = Some(c) })
-
+      identStyle("ident-node-enum",       c => { nodeIdentStyle = nodeIdentStyle.copy(enum = c) })
+      identStyle("ident-node-field",      c => { nodeIdentStyle = nodeIdentStyle.copy(field = c) })
+      identStyle("ident-node-method",     c => { nodeIdentStyle = nodeIdentStyle.copy(method = c) })
+      identStyle("ident-node-type",       c => { nodeIdentStyle = nodeIdentStyle.copy(ty = c) })
+      identStyle("ident-node-type-param", c => { nodeIdentStyle = nodeIdentStyle.copy(typeParam = c) })
+      identStyle("ident-node-local",      c => { nodeIdentStyle = nodeIdentStyle.copy(local = c) })
+      identStyle("ident-node-file",       c => { nodeFileIdentStyleOptional = Some(c) })
     }
 
     if (!argParser.parse(args)) {
@@ -251,10 +300,15 @@ object Main {
     val jniFileIdentStyle = jniFileIdentStyleOptional.getOrElse(cppFileIdentStyle)
     var objcFileIdentStyle = objcFileIdentStyleOptional.getOrElse(objcIdentStyle.ty)
     val objcppIncludeObjcPrefix = objcppIncludeObjcPrefixOptional.getOrElse(objcppIncludePrefix)
+    var nodeFileIdentStyle = nodeFileIdentStyleOptional.getOrElse(nodeIdentStyle.ty)
 
     // Add ObjC prefix to identstyle
     objcIdentStyle = objcIdentStyle.copy(ty = IdentStyle.prefix(objcTypePrefix,objcIdentStyle.ty))
     objcFileIdentStyle = IdentStyle.prefix(objcTypePrefix, objcFileIdentStyle)
+
+    // Add Node prefix to identstyle
+    nodeIdentStyle = nodeIdentStyle.copy(ty = IdentStyle.prefix(nodeTypePrefix,nodeIdentStyle.ty))
+    nodeFileIdentStyle = IdentStyle.prefix(nodeTypePrefix, nodeFileIdentStyle)
 
     if (cppTypeEnumIdentStyle != null) {
       cppIdentStyle = cppIdentStyle.copy(enumType = cppTypeEnumIdentStyle)
@@ -270,10 +324,10 @@ object Main {
       None
     }
     val idl = try {
-      (new Parser).parseFile(idlFile, inFileListWriter)
+      (new Parser(idlIncludePaths)).parseFile(idlFile, inFileListWriter)
     }
     catch {
-      case ex: IOException =>
+      case ex @ (_: FileNotFoundException | _: IOException) =>
         System.err.println("Error reading from --idl file: " + ex.getMessage)
         System.exit(1); return
     }
@@ -284,91 +338,120 @@ object Main {
     }
 
     // Resolve names in IDL file, check types.
-    System.out.println("Resolving...")
-    resolver.resolve(meta.defaults, idl) match {
-      case Some(err) =>
-        System.err.println(err)
+    System.out.println("Preprocessing...")
+    preprocessor.resolveTemplates(meta.defaults, idl) match {
+      case Success((meta, idl)) =>
+        // Resolve names in IDL file, check types.
+        System.out.println("Resolving...")
+        resolver.resolve(meta, idl) match {
+          case Some(err) =>
+            System.err.println(err)
+            System.exit(1); return
+          case _ =>
+        }
+        System.out.println("Generating...")
+        val outFileListWriter = if (outFileListPath.isDefined) {
+          if (outFileListPath.get.getParentFile != null)
+            createFolder("output file list", outFileListPath.get.getParentFile)
+          Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
+        } else {
+          None
+        }
+
+        val objcSwiftBridgingHeaderWriter = if (objcSwiftBridgingHeader.isDefined && objcOutFolder.isDefined) {
+          val objcSwiftBridgingHeaderFile = new File(objcOutFolder.get.getPath, objcSwiftBridgingHeader.get + ".h")
+          if (objcSwiftBridgingHeaderFile.getParentFile != null)
+            createFolder("output file list", objcSwiftBridgingHeaderFile.getParentFile)
+          Some(new BufferedWriter(new FileWriter(objcSwiftBridgingHeaderFile)))
+        } else {
+          None
+        }
+
+        val outSpec = Spec(
+          javaOutFolder,
+          javaPackage,
+          javaClassAccessModifier,
+          javaIdentStyle,
+          javaCppException,
+          javaAnnotation,
+          javaNullableAnnotation,
+          javaNonnullAnnotation,
+          javaImplementAndroidOsParcelable,
+          javaUseFinalForRecord,
+          cppOutFolder,
+          cppHeaderOutFolder,
+          cppIncludePrefix,
+          cppExtendedRecordIncludePrefix,
+          cppNamespace,
+          cppIdentStyle,
+          cppFileIdentStyle,
+          cppOptionalTemplate,
+          cppOptionalHeader,
+          cppEnumHashWorkaround,
+          cppNnHeader,
+          cppNnType,
+          cppNnCheckExpression,
+          cppUseWideStrings,
+          jniOutFolder,
+          jniHeaderOutFolder,
+          jniIncludePrefix,
+          jniIncludeCppPrefix,
+          jniNamespace,
+          jniClassIdentStyle,
+          jniFileIdentStyle,
+          jniBaseLibIncludePrefix,
+          cppExt,
+          cppHeaderExt,
+          objcOutFolder,
+          objcppOutFolder,
+          objcIdentStyle,
+          objcFileIdentStyle,
+          objcppExt,
+          objcHeaderExt,
+          objcIncludePrefix,
+          objcExtendedRecordIncludePrefix,
+          objcppIncludePrefix,
+          objcppIncludeCppPrefix,
+          objcppIncludeObjcPrefix,
+          objcppNamespace,
+          objcBaseLibIncludePrefix,
+          objcSwiftBridgingHeaderWriter,
+          outFileListWriter,
+          skipGeneration,
+          yamlOutFolder,
+          yamlOutFile,
+          yamlPrefix,
+          swiftOutFolder,
+          swiftTypePrefix,
+          swiftUmbrellaHeaderFilename,
+          nodeOutFolder,
+          nodePackage,
+          nodeIncludeCpp,
+          nodeIdentStyle,
+          nodeFileIdentStyle,
+          reactIncludeObjc,
+          reactIncludeObjcImpl,
+          reactNativeOutFolder,
+          reactNativeTypePrefix,
+          reactNativeObjcImplSuffix,
+          traceMethodsCalls)
+
+        try {
+          val r = generate(idl, outSpec)
+          r.foreach(e => System.err.println("Error generating output: " + e))
+        }
+        finally {
+          if (outFileListWriter.isDefined) {
+            outFileListWriter.get.close()
+          }
+          if (objcSwiftBridgingHeaderWriter.isDefined) {
+            objcSwiftBridgingHeaderWriter.get.close()
+          }
+        }
+      case Failure(ex) =>
+        System.err.println(ex)
         System.exit(1); return
-      case _ =>
     }
 
-    System.out.println("Generating...")
-    val outFileListWriter = if (outFileListPath.isDefined) {
-      if (outFileListPath.get.getParentFile != null)
-        createFolder("output file list", outFileListPath.get.getParentFile)
-      Some(new BufferedWriter(new FileWriter(outFileListPath.get)))
-    } else {
-      None
-    }
-
-    val outSpec = Spec(
-      javaOutFolder,
-      javaPackage,
-      javaClassAccessModifier,
-      javaIdentStyle,
-      javaCppException,
-      javaAnnotation,
-      javaNullableAnnotation,
-      javaNonnullAnnotation,
-      javaUseFinalForRecord,
-      cppOutFolder,
-      cppHeaderOutFolder,
-      cppIncludePrefix,
-      cppExtendedRecordIncludePrefix,
-      cppNamespace,
-      cppIdentStyle,
-      cppFileIdentStyle,
-      cppOptionalTemplate,
-      cppOptionalHeader,
-      cppEnumHashWorkaround,
-      cppNnHeader,
-      cppNnType,
-      cppNnCheckExpression,
-      cppUseWideStrings,
-      jniOutFolder,
-      jniHeaderOutFolder,
-      jniIncludePrefix,
-      jniIncludeCppPrefix,
-      jniNamespace,
-      jniClassIdentStyle,
-      jniFileIdentStyle,
-      jniBaseLibIncludePrefix,
-      cppExt,
-      cppHeaderExt,
-      objcOutFolder,
-      objcppOutFolder,
-      objcIdentStyle,
-      objcFileIdentStyle,
-      objcppExt,
-      objcHeaderExt,
-      objcIncludePrefix,
-      objcExtendedRecordIncludePrefix,
-      objcppIncludePrefix,
-      objcppIncludeCppPrefix,
-      objcppIncludeObjcPrefix,
-      objcppNamespace,
-      objcBaseLibIncludePrefix,
-      outFileListWriter,
-      skipGeneration,
-      yamlOutFolder,
-      yamlOutFile,
-      yamlPrefix,
-      swiftOutFolder,
-      swiftTypePrefix,
-      swiftUmbrellaHeaderFilename,
-      nodeOutFolder,
-      nodePackage
-    )
-
-
-    try {
-      val r = generate(idl, outSpec)
-      r.foreach(e => System.err.println("Error generating output: " + e))
-    }
-    finally {
-      if (outFileListWriter.isDefined) {
-        outFileListWriter.get.close()
-      }
-    }
   }
 }

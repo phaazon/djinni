@@ -18,15 +18,13 @@ package djinni
 
 import djinni.ast._
 import java.io._
-
 import djinni.generatorTools._
 import djinni.meta._
 import djinni.syntax.Error
 import djinni.writer.IndentWriter
-import djnni.SwiftGenerator
-
 import scala.language.implicitConversions
 import scala.collection.mutable
+import scala.util.matching.Regex
 
 package object generatorTools {
 
@@ -39,6 +37,7 @@ package object generatorTools {
                    javaAnnotation: Option[String],
                    javaNullableAnnotation: Option[String],
                    javaNonnullAnnotation: Option[String],
+                   javaImplementAndroidOsParcelable: Boolean,
                    javaUseFinalForRecord: Boolean,
                    cppOutFolder: Option[File],
                    cppHeaderOutFolder: Option[File],
@@ -77,6 +76,7 @@ package object generatorTools {
                    objcppIncludeObjcPrefix: String,
                    objcppNamespace: String,
                    objcBaseLibIncludePrefix: String,
+                   objcSwiftBridgingHeaderWriter: Option[Writer],
                    outFileListWriter: Option[Writer],
                    skipGeneration: Boolean,
                    yamlOutFolder: Option[File],
@@ -86,7 +86,16 @@ package object generatorTools {
                    swiftTypePrefix: String,
                    swiftUmbrellaHeaderFilename: String,
                    nodeOutFolder: Option[File],
-                   nodePackage: String)
+                   nodePackage: String,
+                   nodeIncludeCpp: String,
+                   nodeIdentStyle: NodeIdentStyle,
+                   nodeFileIdentStyle: IdentConverter,
+                   reactIncludeObjc: String,
+                   reactIncludeObjcImpl: String,
+                   reactNativeOutFolder: Option[File],
+                   reactNativeTypePrefix: String,
+                   reactNativeObjcImplSuffix: String,
+                   traceMethodCalls: Boolean)
 
   def preComma(s: String) = {
     if (s.isEmpty) s else ", " + s
@@ -108,13 +117,10 @@ package object generatorTools {
                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
                             enum: IdentConverter, const: IdentConverter)
 
-  case class SwiftIdentStyle(ty: IdentConverter, typeParam: IdentConverter,
-                             method: IdentConverter, field: IdentConverter, local: IdentConverter,
-                             enum: IdentConverter, const: IdentConverter)
+  case class NodeIdentStyle(ty: IdentConverter, enumType: IdentConverter, typeParam: IdentConverter,
+                            method: IdentConverter, field: IdentConverter, local: IdentConverter,
+                            enum: IdentConverter, const: IdentConverter)
 
-  case class JavascriptIdentStyle(ty: IdentConverter, enumType: IdentConverter, typeParam: IdentConverter,
-                                  method: IdentConverter, field: IdentConverter, local: IdentConverter,
-                                  enum: IdentConverter, const: IdentConverter)
 
   object IdentStyle {
     val camelUpper = (s: String) => s.split('_').map(firstUpper).mkString
@@ -130,8 +136,7 @@ package object generatorTools {
     val javaDefault = JavaIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, underCaps, underCaps)
     val cppDefault = CppIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
     val objcDefault = ObjcIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelUpper, camelUpper)
-    val swiftDefault = SwiftIdentStyle(camelUpper, camelUpper, camelLower, camelLower, camelLower, camelLower, camelLower)
-    val javascriptDefault = JavascriptIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
+    val nodeDefault = NodeIdentStyle(camelUpper, camelUpper, camelUpper, underLower, underLower, underLower, underCaps, underCaps)
 
     val styles = Map(
       "FooBar" -> camelUpper,
@@ -212,6 +217,10 @@ package object generatorTools {
         }
         new JavaGenerator(spec).generate(idl)
       }
+      if (spec.javaOutFolder.isDefined) {
+        createFolder("Scala implicits", new File(spec.javaOutFolder.get.getParentFile, "scala"))
+        new ScalaImplicitsGenerator(spec).generate(idl)
+      }
       if (spec.jniOutFolder.isDefined) {
         if (!spec.skipGeneration) {
           createFolder("JNI C++", spec.jniOutFolder.get)
@@ -231,23 +240,33 @@ package object generatorTools {
         }
         new ObjcppGenerator(spec).generate(idl)
       }
-      if (spec.yamlOutFolder.isDefined) {
-        if (!spec.skipGeneration) {
-          createFolder("YAML", spec.yamlOutFolder.get)
-        }
-        new YamlGenerator(spec).generate(idl)
-      }
-      if (spec.swiftOutFolder.isDefined) {
-        if (!spec.skipGeneration) {
-          createFolder("Swift", spec.swiftOutFolder.get)
-        }
-        new SwiftGenerator(spec).generate(idl)
+      if (spec.objcSwiftBridgingHeaderWriter.isDefined) {
+        SwiftBridgingHeaderGenerator.writeAutogenerationWarning(spec.objcSwiftBridgingHeaderWriter.get)
+        new SwiftBridgingHeaderGenerator(spec).generate(idl)
       }
       if (spec.nodeOutFolder.isDefined) {
         if (!spec.skipGeneration) {
           createFolder("NodeJS", spec.nodeOutFolder.get)
         }
         new NodeJsGenerator(spec).generate(idl)
+      }
+      if (spec.nodeOutFolder.isDefined) {
+        if (!spec.skipGeneration) {
+          createFolder("NodeJSCpp", spec.nodeOutFolder.get)
+        }
+        new NodeJsCppGenerator(spec).generate(idl)
+      }
+      if (spec.reactNativeOutFolder.isDefined) {
+        if (!spec.skipGeneration) {
+          createFolder("React-Native", spec.reactNativeOutFolder.get)
+        }
+        new ReactNativeObjcGenerator(spec).generate(idl)
+      }
+      if (spec.yamlOutFolder.isDefined) {
+        if (!spec.skipGeneration) {
+          createFolder("YAML", spec.yamlOutFolder.get)
+        }
+        new YamlGenerator(spec).generate(idl)
       }
       None
     }
@@ -302,6 +321,7 @@ abstract class Generator(spec: Spec)
   val idCpp = spec.cppIdentStyle
   val idJava = spec.javaIdentStyle
   val idObjc = spec.objcIdentStyle
+  val idNode = spec.nodeIdentStyle
 
   def wrapNamespace(w: IndentWriter, ns: String, f: IndentWriter => Unit) {
     ns match {
@@ -325,10 +345,15 @@ abstract class Generator(spec: Spec)
 
   def writeHppFileGeneric(folder: File, namespace: String, fileIdentStyle: IdentConverter)(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit) {
     createFile(folder, fileIdentStyle(name) + "." + spec.cppHeaderExt, (w: IndentWriter) => {
+      var t = ""
+      if (namespace.contains("djinni_generated"))
+        t = "_JNI_"
+      val define = ("DJINNI_GENERATED_" + fileIdentStyle(name) + "_" + spec.cppHeaderExt + t).toUpperCase
       w.wl("// AUTOGENERATED FILE - DO NOT MODIFY!")
       w.wl("// This file generated by Djinni from " + origin)
       w.wl
-      w.wl("#pragma once")
+      w.wl(s"#ifndef $define")
+      w.wl(s"#define $define")
       if (includes.nonEmpty) {
         w.wl
         includes.foreach(w.wl)
@@ -344,6 +369,7 @@ abstract class Generator(spec: Spec)
         }
       )
       f2(w)
+      w.wl(s"#endif //$define")
     })
   }
 
@@ -380,10 +406,10 @@ abstract class Generator(spec: Spec)
   // Render type expression
 
   def withNs(namespace: Option[String], t: String) = namespace match {
-      case None => t
-      case Some("") => "::" + t
-      case Some(s) => "::" + s + "::" + t
-    }
+    case None => t
+    case Some("") => "::" + t
+    case Some(s) => "::" + s + "::" + t
+  }
 
   def withCppNs(t: String) = withNs(Some(spec.cppNamespace), t)
 
@@ -411,7 +437,43 @@ abstract class Generator(spec: Spec)
     w.w(end)
   }
 
+  def normalEnumOptions(e: Enum) = e.options.filter(_.specialFlag == None)
+
+  def writeEnumOptionNone(w: IndentWriter, e: Enum, ident: IdentConverter) {
+    for (o <- e.options.find(_.specialFlag == Some(Enum.SpecialFlag.NoFlags))) {
+      writeDoc(w, o.doc)
+      w.wl(ident(o.ident.name) + " = 0,")
+    }
+  }
+
+  def writeEnumOptions(w: IndentWriter, e: Enum, ident: IdentConverter) {
+    var shift = 0
+    for (o <- normalEnumOptions(e)) {
+      writeDoc(w, o.doc)
+      w.wl(ident(o.ident.name) + (if(e.flags) s" = 1 << $shift" else "") + ",")
+      shift += 1
+    }
+  }
+
+  def writeEnumOptionAll(w: IndentWriter, e: Enum, ident: IdentConverter) {
+    for (o <- e.options.find(_.specialFlag == Some(Enum.SpecialFlag.AllFlags))) {
+      writeDoc(w, o.doc)
+      w.w(ident(o.ident.name) + " = ")
+      w.w(normalEnumOptions(e).map(o => ident(o.ident.name)).fold("0")((acc, o) => acc + " | " + o))
+      w.wl(",")
+    }
+  }
+
   // --------------------------------------------------------------------------
+
+  def writeMethodDoc(w: IndentWriter, method: Interface.Method, ident: IdentConverter) {
+    val paramReplacements = method.params.map(p => (s"\\b${Regex.quote(p.ident.name)}\\b", s"${ident(p.ident.name)}"))
+    val newDoc = Doc(method.doc.lines.map(l => {
+      paramReplacements.foldLeft(l)((line, rep) =>
+        line.replaceAll(rep._1, rep._2))
+    }))
+    writeDoc(w, newDoc)
+  }
 
   def writeDoc(w: IndentWriter, doc: Doc) {
     doc.lines.length match {

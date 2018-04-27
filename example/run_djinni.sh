@@ -22,7 +22,9 @@ in="$base_dir/example.djinni"
 cpp_out="$base_dir/generated-src/cpp"
 jni_out="$base_dir/generated-src/jni"
 objc_out="$base_dir/generated-src/objc"
+nodejs_out="$base_dir/generated-src/nodejs"
 java_out="$base_dir/generated-src/java/com/dropbox/textsort"
+react_out="$base_dir/generated-src/react-native"
 
 java_package="com.dropbox.textsort"
 
@@ -66,9 +68,20 @@ fi
     --ident-jni-class NativeFooBar \
     --ident-jni-file NativeFooBar \
     \
-	--objc-out "$temp_out/objc" \
-	--objcpp-out "$temp_out/objc" \
+    --objc-out "$temp_out/objc" \
+    --objcpp-out "$temp_out/objc" \
     --objc-type-prefix TXS \
+    --objc-swift-bridging-header "TextSort-Bridging-Header" \
+    \
+    --node-out "$temp_out/nodejs" \
+    --node-type-prefix NJS \
+    --node-include-cpp "../cpp" \
+    --node-package ledgerapp_nodejs \
+    --react-native-out "$temp_out/react-native" \
+    --react-native-type-prefix RCT \
+    --react-include-objc "../objc" \
+    --react-include-objc-impl "../../handwritten-src/objc" \
+    --react-native-objc-impl-suffix "Impl" \
     \
     --idl "$in"
 
@@ -79,7 +92,7 @@ mirror() {
     local src="$1" ; shift
     local dest="$1" ; shift
     mkdir -p "$dest"
-    rsync -a --delete --checksum --itemize-changes "$src"/ "$dest" | grep -v '^\.' | sed "s/^/[$prefix]/"
+    rsync -r --delete --checksum --itemize-changes "$src"/ "$dest" | sed "s/^/[$prefix]/"
 }
 
 echo "Copying generated code to final directories..."
@@ -87,6 +100,8 @@ mirror "cpp" "$temp_out/cpp" "$cpp_out"
 mirror "java" "$temp_out/java" "$java_out"
 mirror "jni" "$temp_out/jni" "$jni_out"
 mirror "objc" "$temp_out/objc" "$objc_out"
+mirror "nodejs" "$temp_out/nodejs" "$nodejs_out"
+mirror "react-native" "$temp_out/react-native" "$react_out"
 
 date > "$gen_stamp"
 

@@ -1,3 +1,5 @@
+djinni.iml
+support-lib/out/
 .DS_Store
 
 **/.idea/workspace.xml
@@ -35,4 +37,5 @@ intellij-plugin/djinni.jar
 # profiling output
 callgrind.out.*
 
+example/generated-src/
 .idea/

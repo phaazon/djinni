@@ -21,7 +21,7 @@ class ObjcMarshal(spec: Spec) extends Marshal(spec) {
     val interfaceNullity = if (spec.cppNnType.nonEmpty) nonnull else nullable
     tm.base match {
       case MOptional => nullable
-      case MPrimitive(_,_,_,_,_,_,_,_, _) => None
+      case MPrimitive(_,_,_,_,_,_,_,_,_,_,_) => None
       case d: MDef => d.defType match {
         case DEnum => None
         case DInterface => interfaceNullity
@@ -71,6 +71,36 @@ class ObjcMarshal(spec: Spec) extends Marshal(spec) {
     }
     case e: MExtern => List(ImportRef(e.objc.header))
     case p: MParam => List()
+  }
+  /*
+  def reactReferences(m: Meta, exclude: String = ""): Seq[SymbolReference] = m match {
+    case d: MDef => d.defType match {
+      case DEnum =>
+        val objcEnumName = spec.objcIncludePrefix + idObjc.ty(d.name)
+        List(ImportRef(q(spec.reactIncludeObjc + "/" + objcEnumName + ".h")))
+      case DInterface =>
+        val ext = d.body.asInstanceOf[Interface].ext
+        List(ImportRef(q(spec.reactIncludeObjc + "/" + typename(d.name, d.body) + ".h")))
+      case DRecord =>
+        val r = d.body.asInstanceOf[Record]
+        List(ImportRef(q(spec.reactIncludeObjc + "/" + spec.objcIncludePrefix + headerName(d.name))))
+    }
+    case _ => references(m, exclude)
+  }
+  */
+  def reactReferences(m: Meta, exclude: String = ""): Seq[SymbolReference] = m match {
+      case d: MDef => d.defType match {
+        case DEnum =>
+          val objcEnumName = spec.objcIncludePrefix + idObjc.ty(d.name)
+          List(ImportRef(q(objcEnumName + ".h")))
+        case DInterface =>
+          val ext = d.body.asInstanceOf[Interface].ext
+          List(ImportRef(q(typename(d.name, d.body) + ".h")))
+        case DRecord =>
+          val r = d.body.asInstanceOf[Record]
+          List(ImportRef(q(spec.objcIncludePrefix + headerName(d.name))))
+      }
+      case _ => references(m, exclude)
   }
 
   def headerName(ident: String) = idObjc.ty(ident) + "." + spec.objcHeaderExt
@@ -136,6 +166,21 @@ class ObjcMarshal(spec: Spec) extends Marshal(spec) {
     f(tm, needRef)
   }
 
+  def toBox(tm: MExpr): Boolean = {
+    tm.base match {
+      case o =>
+        val boxing = o match {
+          case p: MPrimitive => true
+          case d: MDef => d.defType match {
+            case DEnum => true
+            case _ => false
+          }
+          case _ => false
+        }
+        boxing
+      case _ => false
+    }
+  }
   def toBoxedParamType(tm: MExpr): String = {
     val (name, needRef) = toObjcType(tm, true)
     name + (if(needRef) " *" else "")
@@ -153,7 +198,7 @@ class ObjcMarshal(spec: Spec) extends Marshal(spec) {
     * strings, and optional strings. Anything else needs to be a class method.
     */
   def canBeConstVariable(c:Const): Boolean = c.ty.resolved.base match {
-    case MPrimitive(_,_,_,_,_,_,_,_,_) => true
+    case MPrimitive(_,_,_,_,_,_,_,_,_,_,_) => true
     case MString => true
     case MOptional =>
       assert(c.ty.resolved.args.size == 1)
