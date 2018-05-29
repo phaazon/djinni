@@ -29,8 +29,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
   val marshal = new CppMarshal(spec)
 
   val writeCppFile = writeCppFileGeneric(spec.cppOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle, spec.cppIncludePrefix) _
-  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {})) =
-    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2)
+  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {}), addExportHeader: Boolean = false) =
+    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2, addExportHeader)
 
   class CppRefs(name: String) {
     var hpp = mutable.TreeSet[String]()
@@ -158,11 +158,12 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
       })
   }
 
-  def generateHppConstants(w: IndentWriter, consts: Seq[Const]) = {
+  def generateHppConstants(w: IndentWriter, consts: Seq[Const], exportHeaderAdded: Boolean = false) = {
     for (c <- consts) {
       w.wl
       writeDoc(w, c.doc)
-      w.wl(s"static ${marshal.fieldType(c.ty)} const ${idCpp.const(c.ident)};")
+      val exportHeader = if (exportHeaderAdded) s"${spec.exportHeaderName.toUpperCase()} " else "";
+      w.wl(s"static ${exportHeader}${marshal.fieldType(c.ty)} const ${idCpp.const(c.ident)};")
     }
   }
 
@@ -392,6 +393,9 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
     val self = marshal.typename(ident, i)
     val methodNamesInScope = i.methods.map(m => idCpp.method(m.ident))
 
+    //MSVC BUILD: Include export header file so global data symbols will be exported in dll
+    val addExportHeader = spec.exportHeaderName.length > 0 && i.consts.length > 0
+
     writeHppFile(ident, origin, refs.hpp, refs.hppFwds, w => {
       writeDoc(w, doc)
       writeCppTypeParams(w, typeParams)
@@ -400,7 +404,7 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
         // Destructor
         w.wl(s"virtual ~$self() {}")
         // Constants
-        generateHppConstants(w, i.consts)
+        generateHppConstants(w, i.consts, addExportHeader)
         // Methods
         for (m <- i.methods) {
           w.wl
@@ -415,7 +419,7 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
           }
         }
       }
-    })
+    }, w => {}, addExportHeader)
 
     // Cpp only generated in need of Constants
     if (i.consts.nonEmpty) {
