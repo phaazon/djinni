@@ -158,11 +158,10 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
       })
   }
 
-  def generateHppConstants(w: IndentWriter, consts: Seq[Const], exportHeaderAdded: Boolean = false) = {
+  def generateHppConstants(w: IndentWriter, consts: Seq[Const], exportHeader: String = "") = {
     for (c <- consts) {
       w.wl
       writeDoc(w, c.doc)
-      val exportHeader = if (exportHeaderAdded) s"${spec.exportHeaderName.toUpperCase()} " else "";
       w.wl(s"static ${exportHeader}${marshal.fieldType(c.ty)} const ${idCpp.const(c.ident)};")
     }
   }
@@ -395,16 +394,16 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
 
     //MSVC BUILD: Include export header file so global data symbols will be exported in dll
     val addExportHeader = spec.exportHeaderName.length > 0 && i.consts.length > 0
-
+    val exportHeader = if (addExportHeader) s"${spec.exportHeaderName.toUpperCase()} " else "";
     writeHppFile(ident, origin, refs.hpp, refs.hppFwds, w => {
       writeDoc(w, doc)
       writeCppTypeParams(w, typeParams)
-      w.w(s"class $self").bracedSemi {
+      w.w(s"class $exportHeader $self").bracedSemi {
         w.wlOutdent("public:")
         // Destructor
         w.wl(s"virtual ~$self() {}")
         // Constants
-        generateHppConstants(w, i.consts, addExportHeader)
+        generateHppConstants(w, i.consts, exportHeader)
         // Methods
         for (m <- i.methods) {
           w.wl
