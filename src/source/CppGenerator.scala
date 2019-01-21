@@ -406,7 +406,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
     writeHppFile(ident, origin, refs.hpp, refs.hppFwds, w => {
       writeDoc(w, doc)
       writeCppTypeParams(w, typeParams)
-      w.w(s"class $getExportMacro$self").bracedSemi {
+      val exportMacro = if (i.ext.cpp) getExportMacro() else "";
+      w.w(s"class $exportMacro$self").bracedSemi {
         w.wlOutdent("public:")
         // Destructor
         w.wl(s"virtual ~$self() {}")
