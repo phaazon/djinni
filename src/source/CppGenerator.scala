@@ -29,8 +29,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
   val marshal = new CppMarshal(spec)
 
   val writeCppFile = writeCppFileGeneric(spec.cppOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle, spec.cppIncludePrefix) _
-  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {}), addExportHeader: Boolean = false) =
-    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2, addExportHeader)
+  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {})) =
+    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2, isExportHeaderNeeded())
 
   class CppRefs(name: String) {
     var hpp = mutable.TreeSet[String]()
@@ -117,8 +117,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
         writeEnumOptionAll(w, e, idCpp.enum)
       }
       val variableName = self(0).toLower + self.slice(1, self.length)
-      w.wl(s"std::string to_string(const $self& $variableName);")
-      w.wl(s"std::ostream &operator<<(std::ostream &os, const $self &o);")
+      w.wl(s"$getExportMacro std::string to_string(const $self& $variableName);")
+      w.wl(s"$getExportMacro std::ostream &operator<<(std::ostream &os, const $self &o);")
 
       if(e.flags) {
         // Define some operators to make working with "enum class" flags actually practical
@@ -158,12 +158,20 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
       })
   }
 
-  def generateHppConstants(w: IndentWriter, consts: Seq[Const], exportHeaderAdded: Boolean = false) = {
+  // To export symbols in windows dll
+  def isExportHeaderNeeded() : Boolean = {
+    return spec.exportHeaderName.length > 0;
+  }
+
+  def getExportMacro(): String = {
+    return if (isExportHeaderNeeded()) s"${spec.exportHeaderName.toUpperCase()} " else "";
+  }
+
+  def generateHppConstants(w: IndentWriter, consts: Seq[Const]) = {
     for (c <- consts) {
       w.wl
       writeDoc(w, c.doc)
-      val exportHeader = if (exportHeaderAdded) s"${spec.exportHeaderName.toUpperCase()} " else "";
-      w.wl(s"static ${exportHeader}${marshal.fieldType(c.ty)} const ${idCpp.const(c.ident)};")
+      w.wl(s"static ${marshal.fieldType(c.ty)} const ${idCpp.const(c.ident)};")
     }
   }
 
@@ -394,17 +402,17 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
     val methodNamesInScope = i.methods.map(m => idCpp.method(m.ident))
 
     //MSVC BUILD: Include export header file so global data symbols will be exported in dll
-    val addExportHeader = spec.exportHeaderName.length > 0 && i.consts.length > 0
 
     writeHppFile(ident, origin, refs.hpp, refs.hppFwds, w => {
       writeDoc(w, doc)
       writeCppTypeParams(w, typeParams)
-      w.w(s"class $self").bracedSemi {
+      val exportMacro = if (i.ext.cpp) getExportMacro() else "";
+      w.w(s"class $exportMacro$self").bracedSemi {
         w.wlOutdent("public:")
         // Destructor
         w.wl(s"virtual ~$self() {}")
         // Constants
-        generateHppConstants(w, i.consts, addExportHeader)
+        generateHppConstants(w, i.consts)
         // Methods
         for (m <- i.methods) {
           w.wl
@@ -419,7 +427,7 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
           }
         }
       }
-    }, w => {}, addExportHeader)
+    }, w => {})
 
     // Cpp only generated in need of Constants
     if (i.consts.nonEmpty) {
