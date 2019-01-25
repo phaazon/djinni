@@ -29,8 +29,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
   val marshal = new CppMarshal(spec)
 
   val writeCppFile = writeCppFileGeneric(spec.cppOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle, spec.cppIncludePrefix) _
-  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {})) =
-    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2, isExportHeaderNeeded())
+  def writeHppFile(name: String, origin: String, includes: Iterable[String], fwds: Iterable[String], f: IndentWriter => Unit, f2: IndentWriter => Unit = (w => {}), isExportHeaderNeeded: Boolean = false) =
+    writeHppFileGeneric(spec.cppHeaderOutFolder.get, spec.cppNamespace, spec.cppFileIdentStyle)(name, origin, includes, fwds, f, f2, isExportHeaderNeeded)
 
   class CppRefs(name: String) {
     var hpp = mutable.TreeSet[String]()
@@ -155,7 +155,8 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
             }
           )
         }
-      })
+      },
+      isExportHeaderNeeded())
   }
 
   // To export symbols in windows dll
@@ -427,7 +428,9 @@ class CppGenerator(spec: Spec) extends Generator(spec) {
           }
         }
       }
-    }, w => {})
+    },
+      w => {},
+      isExportHeaderNeeded())
 
     // Cpp only generated in need of Constants
     if (i.consts.nonEmpty) {
