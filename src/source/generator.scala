@@ -384,7 +384,7 @@ abstract class Generator(spec: Spec)
       if (addExportHeader) {
         //MSVC BUILD: Include export header file so global data symbols will be exported in dll
         w.wl(s"#ifndef ${spec.exportHeaderName.toUpperCase()}")
-        w.wl("    #if defined(_MSC_VER) && _MSC_VER <= 1900")
+        w.wl("    #if defined(_MSC_VER)")
         w.wl(s"       #include <${spec.exportHeaderName}.h>")
         w.wl("    #else")
         w.wl(s"       #define ${spec.exportHeaderName.toUpperCase()}")
