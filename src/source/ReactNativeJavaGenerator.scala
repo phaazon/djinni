@@ -637,7 +637,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
 
     });
   }
-  
+
   def addDefaultReferences(references: ReactNativeRefs): Unit = {
     references.java.add("java.util.ArrayList")
     references.java.add("java.util.HashMap")
@@ -811,13 +811,15 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
                 w.wl(s"if ($errorParamField != null && $errorParamField.getMessage().length() > 0)").braced {
                   w.wl(s"this.promise.reject(${idJava.field(errorParam.ident)}.toString(), $errorParamField.getMessage());")
                 }
-                val resultParam = m.params(0)
-                val isParamInterface = isExprInterface(resultParam.ty.resolved)
-                val isParamRecord = isExprRecord(resultParam.ty.resolved)
-                val isParamBinary = isBinary(resultParam.ty.resolved)
-                toReactType(resultParam.ty.resolved, "converted_result", idJava.field(resultParam.ident), w)
-                w.wl
-                w.wl(s"this.promise.resolve(${if (isParamInterface || isParamRecord || isParamBinary) "converted_result" else idJava.field(resultParam.ident)});")
+                w.wl(s"else").braced {
+                  val resultParam = m.params(0)
+                  val isParamInterface = isExprInterface(resultParam.ty.resolved)
+                  val isParamRecord = isExprRecord(resultParam.ty.resolved)
+                  val isParamBinary = isBinary(resultParam.ty.resolved)
+                  toReactType(resultParam.ty.resolved, "converted_result", idJava.field(resultParam.ident), w)
+                  w.wl
+                  w.wl(s"this.promise.resolve(${if (isParamInterface || isParamRecord || isParamBinary) "converted_result" else idJava.field(resultParam.ident)});")
+                }
               }
 
 
