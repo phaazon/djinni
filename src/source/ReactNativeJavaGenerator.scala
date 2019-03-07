@@ -374,7 +374,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
         wr.wl(s"String $converted = byteArrayToHexString($converting);")
       }
       case MDate => {
-        wr.wl(s"""DateFormat ${converting}DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");""")
+        wr.wl(s"""DateFormat ${converting}DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");""")
         wr.wl(s"String $converted = ${converting}DateFormat.format($converting);")
       }
       case d: MDef =>
@@ -637,7 +637,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
 
     });
   }
-  
+
   def addDefaultReferences(references: ReactNativeRefs): Unit = {
     references.java.add("java.util.ArrayList")
     references.java.add("java.util.HashMap")
@@ -847,7 +847,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
                           case _ => converting
                         }
                       case MDate => {
-                        w.wl("""DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");""")
+                        w.wl("""DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");""")
                         w.wl(s"String finalJavaResult = dateFormat.format($converting);")
                         "finalJavaResult"
                       }
