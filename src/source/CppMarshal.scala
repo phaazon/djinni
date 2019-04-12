@@ -160,6 +160,9 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
       case MList => "std::vector"
       case MSet => "std::unordered_set"
       case MMap => "std::unordered_map"
+      case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6
+         | MCallback7 | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12
+         | MCallback13 | MCallback14 | MCallback15 => "std::function"
       case d: MDef =>
         d.defType match {
           case DEnum => withNamespace(idCpp.enumType(d.name))
