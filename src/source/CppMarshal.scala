@@ -169,11 +169,11 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
           case DRecord => withNamespace(idCpp.ty(d.name))
           case DInterface => s"std::shared_ptr<${withNamespace(idCpp.ty(d.name))}>"
         }
-      case e: MExtern => e.defType match {
-        case DInterface => s"std::shared_ptr<${e.cpp.typename}>"
-        case _ => e.cpp.typename
-      }
-      case p: MParam => idCpp.typeParam(p.name)
+        case e: MExtern => e.defType match {
+          case DInterface => s"std::shared_ptr<${e.cpp.typename}>"
+          case _ => e.cpp.typename
+        }
+        case p: MParam => idCpp.typeParam(p.name)
     }
     def expr(tm: MExpr): String = {
       spec.cppNnType match {
@@ -204,7 +204,15 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
           // otherwise, interfaces are always plain old shared_ptr
           expr(tm.args.head)
         } else {
-          val args = if (tm.args.isEmpty) "" else tm.args.map(expr).mkString("<", ", ", ">")
+          // ensure it’s not a callback type, which has the function-type notation
+          val args = tm.base match {
+            // it’s a callback, so the type in brackets need to have the return type before
+            // the actual list of arguments
+            case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6
+               | MCallback7 | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12
+               | MCallback13 | MCallback14 | MCallback15 => tm.args.map(expr).mkString("<void(", ", ", ")>")
+            case _ => if (tm.args.isEmpty) "" else tm.args.map(expr).mkString("<", ", ", ">")
+          }
           base(tm.base) + args
         }
       }
