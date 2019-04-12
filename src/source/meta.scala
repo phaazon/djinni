@@ -115,20 +115,20 @@ val defaults: Map[String,MOpaque] = immutable.HashMap(
   ("list", MList),
   ("set", MSet),
   ("map", MMap),
-  ("callback1", MCallback1)
-  ("callback2", MCallback2)
-  ("callback3", MCallback3)
-  ("callback4", MCallback4)
-  ("callback5", MCallback5)
-  ("callback6", MCallback6)
-  ("callback7", MCallback7)
-  ("callback8", MCallback8)
-  ("callback9", MCallback9)
-  ("callback10", MCallback10)
-  ("callback11", MCallback11)
-  ("callback12", MCallback12)
-  ("callback13", MCallback13)
-  ("callback14", MCallback14)
+  ("callback1", MCallback1),
+  ("callback2", MCallback2),
+  ("callback3", MCallback3),
+  ("callback4", MCallback4),
+  ("callback5", MCallback5),
+  ("callback6", MCallback6),
+  ("callback7", MCallback7),
+  ("callback8", MCallback8),
+  ("callback9", MCallback9),
+  ("callback10", MCallback10),
+  ("callback11", MCallback11),
+  ("callback12", MCallback12),
+  ("callback13", MCallback13),
+  ("callback14", MCallback14),
   ("callback15", MCallback15)
 )
 
