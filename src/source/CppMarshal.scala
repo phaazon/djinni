@@ -207,10 +207,19 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
           // ensure it’s not a callback type, which has the function-type notation
           val args = tm.base match {
             // it’s a callback, so the type in brackets need to have the return type before
-            // the actual list of arguments
+            // the actual list of arguments; the first argument is the return type
             case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6
                | MCallback7 | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12
-               | MCallback13 | MCallback14 | MCallback15 => tm.args.map(expr).mkString("<void(", ", ", ")>")
+               | MCallback13 | MCallback14 | MCallback15 => {
+              if (tm.args.isEmpty) {
+                ""
+              } else {
+                // get the first element as return value of the callback
+                val args = tm.args.map(expr)
+                val first = args.head.mkString("<", "", "(")
+                args.tail.mkString(first, ", ", ")>")
+              }
+            }
             case _ => if (tm.args.isEmpty) "" else tm.args.map(expr).mkString("<", ", ", ">")
           }
           base(tm.base) + args

@@ -84,21 +84,21 @@ case object MOptional extends MOpaque { val numParams = 1; val idlName = "option
 case object MList extends MOpaque { val numParams = 1; val idlName = "list" }
 case object MSet extends MOpaque { val numParams = 1; val idlName = "set" }
 case object MMap extends MOpaque { val numParams = 2; val idlName = "map" }
-case object MCallback1 extends MOpaque { val numParams = 1; val idlName = "callback1" }
-case object MCallback2 extends MOpaque { val numParams = 2; val idlName = "callback2" }
-case object MCallback3 extends MOpaque { val numParams = 3; val idlName = "callback3" }
-case object MCallback4 extends MOpaque { val numParams = 4; val idlName = "callback4" }
-case object MCallback5 extends MOpaque { val numParams = 5; val idlName = "callback5" }
-case object MCallback6 extends MOpaque { val numParams = 6; val idlName = "callback6" }
-case object MCallback7 extends MOpaque { val numParams = 7; val idlName = "callback7" }
-case object MCallback8 extends MOpaque { val numParams = 8; val idlName = "callback8" }
-case object MCallback9 extends MOpaque { val numParams = 9; val idlName = "callback9" }
-case object MCallback10 extends MOpaque { val numParams = 10; val idlName = "callback10" }
-case object MCallback11 extends MOpaque { val numParams = 11; val idlName = "callback11" }
-case object MCallback12 extends MOpaque { val numParams = 12; val idlName = "callback12" }
-case object MCallback13 extends MOpaque { val numParams = 13; val idlName = "callback13" }
-case object MCallback14 extends MOpaque { val numParams = 14; val idlName = "callback14" }
-case object MCallback15 extends MOpaque { val numParams = 15; val idlName = "callback15" }
+case object MCallback1 extends MOpaque { val numParams = 2; val idlName = "callback1" }
+case object MCallback2 extends MOpaque { val numParams = 3; val idlName = "callback2" }
+case object MCallback3 extends MOpaque { val numParams = 4; val idlName = "callback3" }
+case object MCallback4 extends MOpaque { val numParams = 5; val idlName = "callback4" }
+case object MCallback5 extends MOpaque { val numParams = 6; val idlName = "callback5" }
+case object MCallback6 extends MOpaque { val numParams = 7; val idlName = "callback6" }
+case object MCallback7 extends MOpaque { val numParams = 8; val idlName = "callback7" }
+case object MCallback8 extends MOpaque { val numParams = 9; val idlName = "callback8" }
+case object MCallback9 extends MOpaque { val numParams = 10; val idlName = "callback9" }
+case object MCallback10 extends MOpaque { val numParams = 11; val idlName = "callback10" }
+case object MCallback11 extends MOpaque { val numParams = 12; val idlName = "callback11" }
+case object MCallback12 extends MOpaque { val numParams = 13; val idlName = "callback12" }
+case object MCallback13 extends MOpaque { val numParams = 14; val idlName = "callback13" }
+case object MCallback14 extends MOpaque { val numParams = 15; val idlName = "callback14" }
+case object MCallback15 extends MOpaque { val numParams = 16; val idlName = "callback15" }
 
 val defaults: Map[String,MOpaque] = immutable.HashMap(
   ("i8",   MPrimitive("i8",   "byte",    "jbyte",    "int8_t",  "Byte",    "B", "int8_t",  "NSNumber", "Int8", "Int32", "number")),
