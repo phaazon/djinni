@@ -53,6 +53,7 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
       case "i8" | "i16" | "i32" | "i64" => List(ImportRef("<cstdint>"))
       case _ => List()
     }
+    case MVoid => List()
     case MString => List(ImportRef("<string>"))
     case MDate => List(ImportRef("<chrono>"))
     case MBinary => List(ImportRef("<vector>"), ImportRef("<cstdint>"))
@@ -153,6 +154,7 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
     }
     def base(m: Meta): String = m match {
       case p: MPrimitive => p.cName
+      case MVoid => "void"
       case MString => if (spec.cppUseWideStrings) "std::wstring" else "std::string"
       case MDate => "std::chrono::system_clock::time_point"
       case MBinary => "std::vector<uint8_t>"
