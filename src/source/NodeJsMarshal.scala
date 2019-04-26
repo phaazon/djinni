@@ -335,7 +335,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
               }
             } else {
               wr.wl(s"Local<Object> njs_$converted = $converting->ToObject(Nan::GetCurrentContext()).ToLocalChecked();")
-              wr.wl(s"auto $converted = djinni::js::ObjectWrapper<$interfaceName>::Unwrap(njs_$converted);");
+              wr.wl(s"auto $converted = djinni::js::ObjectWrapper<${spec.cppNamespace}::$interfaceName>::Unwrap(njs_$converted);");
 
               if(i.ext.cpp){
                 wr.wl(s"if(!$converted)").braced{
