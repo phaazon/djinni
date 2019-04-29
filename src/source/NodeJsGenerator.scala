@@ -41,7 +41,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
 
           val ret = cppMarshal.returnType(m.ret)
           val methodName = m.ident.name
-          val params = m.params.map(p => cppMarshal.paramType(p.ty.resolved) + " " + idNode.local(p.ident))
+          val params = m.params.map(p => cppMarshal.fqParamType(p.ty.resolved) + " " + idNode.local(p.ident))
           if (!m.static) {
             val constFlag = if (m.const) " const" else ""
             w.wl
@@ -252,7 +252,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
             for (m <- i.methods) {
               val ret = cppMarshal.returnType(m.ret)
               val methodName = m.ident.name
-              val params = m.params.map(p => cppMarshal.paramType(p.ty.resolved) + " " + idNode.local(p.ident))
+              val params = m.params.map(p => cppMarshal.fqParamType(p.ty.resolved) + " " + idNode.local(p.ident))
               if (!m.static) {
                 val constFlag = if (m.const) " const" else ""
                 w.wl

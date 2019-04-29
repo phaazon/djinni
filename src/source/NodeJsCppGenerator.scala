@@ -155,7 +155,7 @@ class NodeJsCppGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) e
             if(!m.static) {
               w.wl
               w.wl("//Unwrap current object and retrieve its Cpp Implementation")
-              w.wl(s"auto cpp_impl = djinni::js::ObjectWrapper<$cppClassName>::Unwrap(info.This());")
+              w.wl(s"auto cpp_impl = djinni::js::ObjectWrapper<${spec.cppNamespace}::$cppClassName>::Unwrap(info.This());")
 
               //Test if implementation is null
               w.wl(s"if(!cpp_impl)").braced {
@@ -171,7 +171,7 @@ class NodeJsCppGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) e
               if(!m.static) {
                 w.wl(s"auto result = cpp_impl->$methodName($args);")
               } else {
-                w.wl(s"auto result = ${idCpp.ty(ident.name)}::$methodName($args);")
+                w.wl(s"auto result = ${spec.cppNamespace}::${idCpp.ty(ident.name)}::$methodName($args);")
               }
 
               w.wl
@@ -216,7 +216,7 @@ class NodeJsCppGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) e
     val baseClassName = marshal.typename(ident, i)
     val cppClassName = cppMarshal.typename(ident, i)
     wr.w(s"NAN_METHOD($baseClassName::isNull)").braced {
-      wr.wl(s"auto cpp_implementation = djinni::js::ObjectWrapper<$cppClassName>::Unwrap(info.This());")
+      wr.wl(s"auto cpp_implementation = djinni::js::ObjectWrapper<${spec.cppNamespace}::$cppClassName>::Unwrap(info.This());")
       wr.wl("auto isNull = !cpp_implementation ? true : false;")
       wr.wl("return info.GetReturnValue().Set(Nan::New<Boolean>(isNull));")
     }
