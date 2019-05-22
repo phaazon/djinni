@@ -659,7 +659,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
     references.java.add("com.facebook.react.bridge.ReadableNativeArray")
     references.java.add("com.facebook.react.bridge.WritableNativeMap")
     references.java.add("com.facebook.react.bridge.WritableNativeArray")
-
+    references.java.add("com.facebook.react.module.annotations.ReactModule")
   }
   /**
     * Generate Interface
@@ -921,6 +921,8 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
           writeItfMethods()
         }
       } else {
+        w.w(s"""@ReactModule(name = "$self")""")
+        w.wl
         w.w(s"public class $self extends ReactContextBaseJavaModule").braced {
           w.wl
           //React native
@@ -1005,6 +1007,8 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
 
     writeJavaFile(ident, origin, refs.java, w => {
       writeDoc(w, doc)
+      w.w(s"""@ReactModule(name = "$self")""")
+      w.wl
       w.w(s"public class $self extends ReactContextBaseJavaModule").braced {
         //React native
         w.wl("private final ReactApplicationContext reactContext;")
