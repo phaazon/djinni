@@ -77,6 +77,7 @@ case object DInterface extends DefType
 case object DRecord extends DefType
 
 case class MPrimitive(_idlName: String, jName: String, jniName: String, cName: String, jBoxed: String, jSig: String, objcName: String, objcBoxed: String, swiftName: String, nodeJSName: String, jsName: String) extends MOpaque { val numParams = 0; val idlName = _idlName }
+case object MVoid extends MOpaque { val numParams = 0; val idlName = "void" }
 case object MString extends MOpaque { val numParams = 0; val idlName = "string" }
 case object MDate extends MOpaque { val numParams = 0; val idlName = "date" }
 case object MBinary extends MOpaque { val numParams = 0; val idlName = "binary" }
@@ -84,6 +85,21 @@ case object MOptional extends MOpaque { val numParams = 1; val idlName = "option
 case object MList extends MOpaque { val numParams = 1; val idlName = "list" }
 case object MSet extends MOpaque { val numParams = 1; val idlName = "set" }
 case object MMap extends MOpaque { val numParams = 2; val idlName = "map" }
+case object MCallback1 extends MOpaque { val numParams = 2; val idlName = "callback1" }
+case object MCallback2 extends MOpaque { val numParams = 3; val idlName = "callback2" }
+case object MCallback3 extends MOpaque { val numParams = 4; val idlName = "callback3" }
+case object MCallback4 extends MOpaque { val numParams = 5; val idlName = "callback4" }
+case object MCallback5 extends MOpaque { val numParams = 6; val idlName = "callback5" }
+case object MCallback6 extends MOpaque { val numParams = 7; val idlName = "callback6" }
+case object MCallback7 extends MOpaque { val numParams = 8; val idlName = "callback7" }
+case object MCallback8 extends MOpaque { val numParams = 9; val idlName = "callback8" }
+case object MCallback9 extends MOpaque { val numParams = 10; val idlName = "callback9" }
+case object MCallback10 extends MOpaque { val numParams = 11; val idlName = "callback10" }
+case object MCallback11 extends MOpaque { val numParams = 12; val idlName = "callback11" }
+case object MCallback12 extends MOpaque { val numParams = 13; val idlName = "callback12" }
+case object MCallback13 extends MOpaque { val numParams = 14; val idlName = "callback13" }
+case object MCallback14 extends MOpaque { val numParams = 15; val idlName = "callback14" }
+case object MCallback15 extends MOpaque { val numParams = 16; val idlName = "callback15" }
 
 val defaults: Map[String,MOpaque] = immutable.HashMap(
   ("i8",   MPrimitive("i8",   "byte",    "jbyte",    "int8_t",  "Byte",    "B", "int8_t",  "NSNumber", "Int8", "Int32", "number")),
@@ -93,13 +109,30 @@ val defaults: Map[String,MOpaque] = immutable.HashMap(
   ("f32",  MPrimitive("f32",  "float",   "jfloat",   "float",   "Float",   "F", "float",   "NSNumber", "Float32", "Number", "number")),
   ("f64",  MPrimitive("f64",  "double",  "jdouble",  "double",  "Double",  "D", "double",  "NSNumber", "Float64", "Number", "number")),
   ("bool", MPrimitive("bool", "boolean", "jboolean", "bool",    "Boolean", "Z", "BOOL",    "NSNumber", "Bool", "Boolean", "boolean")),
+  ("void", MVoid),
   ("string", MString),
   ("binary", MBinary),
   ("optional", MOptional),
   ("date", MDate),
   ("list", MList),
   ("set", MSet),
-  ("map", MMap))
+  ("map", MMap),
+  ("callback1", MCallback1),
+  ("callback2", MCallback2),
+  ("callback3", MCallback3),
+  ("callback4", MCallback4),
+  ("callback5", MCallback5),
+  ("callback6", MCallback6),
+  ("callback7", MCallback7),
+  ("callback8", MCallback8),
+  ("callback9", MCallback9),
+  ("callback10", MCallback10),
+  ("callback11", MCallback11),
+  ("callback12", MCallback12),
+  ("callback13", MCallback13),
+  ("callback14", MCallback14),
+  ("callback15", MCallback15)
+)
 
 def isInterface(ty: MExpr): Boolean = {
   ty.base match {

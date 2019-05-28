@@ -53,6 +53,7 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
       case "i8" | "i16" | "i32" | "i64" => List(ImportRef("<cstdint>"))
       case _ => List()
     }
+    case MVoid => List()
     case MString => List(ImportRef("<string>"))
     case MDate => List(ImportRef("<chrono>"))
     case MBinary => List(ImportRef("<vector>"), ImportRef("<cstdint>"))
@@ -60,6 +61,9 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
     case MList => List(ImportRef("<vector>"))
     case MSet => List(ImportRef("<unordered_set>"))
     case MMap => List(ImportRef("<unordered_map>"))
+    case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6 | MCallback7
+       | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12 | MCallback13
+       | MCallback14 | MCallback15 => List(ImportRef("<functional>"))
     case d: MDef => d.body match {
       case r: Record =>
         if (d.name != exclude) {
@@ -150,6 +154,7 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
     }
     def base(m: Meta): String = m match {
       case p: MPrimitive => p.cName
+      case MVoid => "void"
       case MString => if (spec.cppUseWideStrings) "std::wstring" else "std::string"
       case MDate => "std::chrono::system_clock::time_point"
       case MBinary => "std::vector<uint8_t>"
@@ -157,6 +162,9 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
       case MList => "std::vector"
       case MSet => "std::unordered_set"
       case MMap => "std::unordered_map"
+      case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6
+         | MCallback7 | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12
+         | MCallback13 | MCallback14 | MCallback15 => "std::function"
       case d: MDef =>
         d.defType match {
           case DEnum => withNamespace(idCpp.enumType(d.name))
@@ -198,7 +206,24 @@ class CppMarshal(spec: Spec) extends Marshal(spec) {
           // otherwise, interfaces are always plain old shared_ptr
           expr(tm.args.head)
         } else {
-          val args = if (tm.args.isEmpty) "" else tm.args.map(expr).mkString("<", ", ", ">")
+          // ensure it’s not a callback type, which has the function-type notation
+          val args = tm.base match {
+            // it’s a callback, so the type in brackets need to have the return type before
+            // the actual list of arguments; the first argument is the return type
+            case MCallback1 | MCallback2 | MCallback3 | MCallback4 | MCallback5 | MCallback6
+               | MCallback7 | MCallback8 | MCallback9 | MCallback10 | MCallback11 | MCallback12
+               | MCallback13 | MCallback14 | MCallback15 => {
+              if (tm.args.isEmpty) {
+                ""
+              } else {
+                // get the first element as return value of the callback
+                val args = tm.args.map(expr)
+                val first = args.head.mkString("<", "", "(")
+                args.tail.mkString(first, ", ", ")>")
+              }
+            }
+            case _ => if (tm.args.isEmpty) "" else tm.args.map(expr).mkString("<", ", ", ">")
+          }
           base(tm.base) + args
         }
       }
