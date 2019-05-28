@@ -94,6 +94,16 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
     case _ => false
   }
 
+  def isExprEnum(tm: MExpr): Boolean = tm.base match {
+    case MOptional | MList | MSet | MMap => isExprEnum(tm.args.head)
+    case d: MDef =>
+      d.defType match {
+        case DEnum => true
+        case _ => false
+      }
+    case _ => false
+  }
+
   def isExprBinary(tm: MExpr): Boolean = tm.base match {
     case MOptional | MList | MSet | MMap => isExprBinary(tm.args.head)
     case MBinary => true
@@ -391,6 +401,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
             wr.wl(s"""$converted.putString("type","$paramTypeName");""")
             wr.wl(s"""$converted.putString("uid",${converting}_uuid);""")
           }
+          case DEnum => wr.wl(s"int $converted = ${converting}.ordinal();")
           case _ =>
         }
       case _ =>
@@ -687,11 +698,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
     //Add default imports (Maps, Arrays, ReactBrigde ...)
     addDefaultReferences(refs)
 
-    if (callbackInterface) {
-      refs.java.add(s"${spec.javaPackage.get}.${marshal.typename(ident, i)}")
-    } else {
-      refs.java.add(s"${spec.javaPackage.get}.${marshal.typename(ident, i)}")
-    }
+    refs.java.add(s"${spec.javaPackage.get}.${marshal.typename(ident, i)}")
 
     writeJavaFile(ident, origin, refs.java, w => {
       writeDoc(w, doc)
@@ -813,12 +820,13 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
                 }
                 w.wl(s"else").braced {
                   val resultParam = m.params(0)
-                  val isParamInterface = isExprInterface(resultParam.ty.resolved)
-                  val isParamRecord = isExprRecord(resultParam.ty.resolved)
-                  val isParamBinary = isBinary(resultParam.ty.resolved)
+                  val isConverted = isExprInterface(resultParam.ty.resolved) ||
+                    isExprRecord(resultParam.ty.resolved) ||
+                    isExprEnum(resultParam.ty.resolved) ||
+                    isBinary(resultParam.ty.resolved)
                   toReactType(resultParam.ty.resolved, "converted_result", idJava.field(resultParam.ident), w)
                   w.wl
-                  w.wl(s"this.promise.resolve(${if (isParamInterface || isParamRecord || isParamBinary) "converted_result" else idJava.field(resultParam.ident)});")
+                  w.wl(s"this.promise.resolve(${if (isConverted) "converted_result" else idJava.field(resultParam.ident)});")
                 }
               }
 
@@ -1197,7 +1205,9 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
                   case _ => javaFieldType
                 }
                 w.wl(s"$supportedFieldTypeName result = javaObj.$getterName();")
-                toReactType(f.ty.resolved, "converted_result", "result", w)
+                if (!isEnum(f.ty.resolved)) {
+                  toReactType(f.ty.resolved, "converted_result", "result", w)
+                }
 
                 def resolvePromise(tm: MExpr) : Unit = {
                   tm.base match {
