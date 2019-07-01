@@ -755,7 +755,10 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
 
 
             w.wl("];")
-            if(m.ret.isDefined && ret != "void") {
+
+            // If method is sync and has void return type, it should still resolve the promise
+            val hasCallback = m.params.exists(p => marshal.typename(p.ty).contains("Callback"));
+            if(m.ret.isDefined) {
               //Add to implementations
               if (isExprInterface(m.ret.get.resolved) || isExprRecord(m.ret.get.resolved)) {
                 //Check if it's a platform specific implementation (i.e. extCpp = true)
@@ -793,6 +796,8 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
                 w.wl(s"""reject(@"impl_call_error", @"Error while calling ${objcInterface}::${idObjc.method(m.ident)}", nil);""")
                 w.wl("return;")
               }
+            } else if (!hasCallback && !callbackInterface) {
+              w.wl("resolve(@(YES));")
             }
           }
           w.wl
