@@ -831,7 +831,15 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
               }
 
               // If method is sync and has void return type, it should still resolve the promise
+              // unless it has no return and a specific implementation object as param
+              // in that case this object will resolve the promise
               val hasCallback = m.params.exists(p => marshal.typename(p.ty).contains("Callback"));
+              val hasObjcImpl = m.params.exists(p => {
+                val paramTypeName = marshal.typename(p.ty.resolved)
+                val objcParamType = getRCTName(paramTypeName)
+                javaInterfaces.contains(objcParamType.substring(idJava.ty("").length))
+              });
+
               if(m.ret.isDefined) {
                 val javaReturnType = getReturnType(m.ret)
                 //Add to implementations
@@ -907,7 +915,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
 
                 w.wl
                 w.wl("promise.resolve(result);")
-              } else if (!hasCallback && !callbackInterface) {
+              } else if (!hasCallback && !callbackInterface & !hasObjcImpl) {
                 w.wl("promise.resolve(0);")
               }
 
