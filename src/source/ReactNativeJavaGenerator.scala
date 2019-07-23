@@ -385,6 +385,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
       }
       case MDate => {
         wr.wl(s"""DateFormat ${converting}DateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");""")
+        wr.wl(s"""${converting}DateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));""")
         wr.wl(s"String $converted = ${converting}DateFormat.format($converting);")
       }
       case d: MDef =>
