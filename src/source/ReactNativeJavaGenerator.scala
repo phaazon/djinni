@@ -660,6 +660,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
     references.java.add("java.text.DateFormat")
     references.java.add("java.text.SimpleDateFormat")
     references.java.add("java.util.Date")
+    references.java.add("java.util.TimeZone")
     references.java.add("com.facebook.react.bridge.ReactApplicationContext")
     references.java.add("com.facebook.react.bridge.ReactContextBaseJavaModule")
     references.java.add("com.facebook.react.bridge.ReactContext")
@@ -868,6 +869,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
                         }
                       case MDate => {
                         w.wl("""DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");""")
+                        wr.wl(s"""dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));""")
                         w.wl(s"String finalJavaResult = dateFormat.format($converting);")
                         "finalJavaResult"
                       }
