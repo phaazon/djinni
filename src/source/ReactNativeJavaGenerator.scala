@@ -431,7 +431,8 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
         }
         wr.wl(s"for (int i = 0; i <  $convertingCall.size(); i++)").braced {
         wr.wl(s"${if (isBinary(tm.args.head)) "String" else reactParamType} ${converting}_elem = $convertingCall.${getMethod(tm.args(0))}(i);")
-        fromReactType(tm.args(0), ident, s"${converted}_elem", s"${converting}_elem", wr, false, s"${converted}_data", true)
+        val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
+        fromReactType(tm.args(0), ident, s"${converted}_elem", s"${converting}_elem", wr, false, nextDataContainer, true)
           val element = tm.args.head.base match {
             case d: MDef =>
               d.defType match {
@@ -459,7 +460,8 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
 
         wr.wl(s"Set<$paramType> $converted = new HashSet<$paramType>();")
         wr.wl(s"for ($reactParamType ${converting}_elem : $convertingCall)").braced {
-          fromReactType(tm.args(0), ident, s"${converted}_elem", s"${converting}_elem", wr, false, s"${converted}_data", true)
+          val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
+          fromReactType(tm.args(0), ident, s"${converted}_elem", s"${converting}_elem", wr, false, nextDataContainer, true)
 
           val element = tm.args.head.base match {
             case d: MDef =>
@@ -491,10 +493,11 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
         val reactValueType = getType(tm.args(1))
         wr.wl(s"Map<$keyType, $valueType> $converted = new HashMap<$keyType, $valueType>();")
         wr.wl(s"for (Map.Entry<$reactKeyType, $reactValueType> ${converting}_elem : $convertingCall)").braced {
+          val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
           wr.wl(s"$reactKeyType ${converted}_elem_key = ${converting}_elem.getKey();")
           wr.wl(s"$reactValueType ${converted}_elem_value = ${converting}_elem.getValue();")
-          fromReactType(tm.args(0), ident, s"${converted}_elem_key", s"${converting}_elem_key", wr, false, s"${converted}_data", true)
-          fromReactType(tm.args(1), ident, s"${converted}_elem_value", s"${converting}_elem_value", wr, false, s"${converted}_data", true)
+          fromReactType(tm.args(0), ident, s"${converted}_elem_key", s"${converting}_elem_key", wr, false, nextDataContainer, true)
+          fromReactType(tm.args(1), ident, s"${converted}_elem_value", s"${converting}_elem_value", wr, false, nextDataContainer, true)
 
           val keyElement = tm.args(0).base match {
             case d: MDef =>

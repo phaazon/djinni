@@ -432,7 +432,8 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
         wr.wl
       }
       wr.wl(s"for (id ${converting}_elem in $converting)").braced {
-        fromReactType(tm.args.head, ident, s"${converted}_elem", s"${converting}_elem", wr, s"${converted}_data", true)
+        val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
+        fromReactType(tm.args.head, ident, s"${converted}_elem", s"${converting}_elem", wr, nextDataContainer, true)
         wr.wl(s"[$converted addObject:${converted}_elem];")
         wr.wl
       }
@@ -450,7 +451,8 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
         wr.wl
       }
       wr.wl(s"for (id ${converting}_elem in arrayFromSet_$converting)").braced {
-        fromReactType(tm.args.head, ident, s"${converted}_elem", s"${converting}_elem", wr, s"${converted}_data", true)
+        val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
+        fromReactType(tm.args.head, ident, s"${converted}_elem", s"${converting}_elem", wr, nextDataContainer, true)
         wr.wl(s"[$converted addObject:${converted}_elem];")
       }
       if (dataContainer.length > 0) {
@@ -467,7 +469,8 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
       }
       wr.wl(s"for (id ${converting}_key in $converting)").braced {
         wr.wl(s"id ${converted}_value = [$converting objectForKey:${converted}_key];")
-        fromReactType(tm.args.head, ident, s"${converted}_value", s"${converting}_value", wr, s"${converted}_data", true)
+        val nextDataContainer = if (dataContainer.length > 0) s"${converted}_data" else ""
+        fromReactType(tm.args.head, ident, s"${converted}_value", s"${converting}_value", wr, nextDataContainer, true)
         wr.wl(s"[$converted setObject:${converted}_value forKey:${converted}_key];")
       }
       if (dataContainer.length > 0) {
@@ -695,8 +698,19 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
               val dataContainer = ""
               val hasParentContainer = false
               def getConverterLocal(tm: MExpr) : Unit = tm.base match {
-                case MList | MSet | MMap | MOptional => getConverterLocal(tm.args.head)
+                case MOptional => getConverterLocal(tm.args.head)
                 case MBinary => fromReactType(tm, param.ident, s"objcParam_$paramIndex", idObjc.field(param.ident), w, dataContainer, hasParentContainer, ret != "void")
+                case MList | MSet | MMap => {
+                  tm.args.head.base match {
+                    case MBinary => fromReactType(tm, param.ident, s"objcParam_$paramIndex", idObjc.field(param.ident), w, dataContainer, hasParentContainer, ret != "void")
+                    case d: MDef =>
+                      d.defType match {
+                        case DInterface | DRecord => fromReactType(tm, param.ident, s"objcParam_$paramIndex", idObjc.field(param.ident), w, dataContainer, hasParentContainer, ret != "void")
+                        case _ =>
+                      }
+                    case _ =>
+                  }
+                }
                 case d: MDef =>
                   d.defType match {
                     case DInterface | DRecord => fromReactType(tm, param.ident, s"objcParam_$paramIndex", idObjc.field(param.ident), w, dataContainer, hasParentContainer, ret != "void")
@@ -722,8 +736,6 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
                 w.wl(s"$rctParamType *objcParam_${index} = [[$rctParamType alloc] initWithResolver:resolve rejecter:reject andBridge:self.bridge];")
               } else {
                 //TODO: check if parameters are having "type" and "uid" fields
-                val dataContainer = ""
-                val hasParentContainer = false
                 getConverter(p, index)
               }
             })
