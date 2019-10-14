@@ -306,6 +306,16 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
     }
   }
 
+  def generateDataToHexMethod(wr : IndentWriter): Unit = {
+    wr.wl("-(NSString *) dataToHexString: (NSData *)data ").braced {
+      wr.wl("const unsigned char *bytes = (const unsigned char *)data.bytes;")
+      wr.wl("NSMutableString *hex = [NSMutableString new];")
+      wr.wl("for (NSInteger i = 0; i < data.length; i++)").braced {
+        wr.wl("[hex appendFormat:@\"%02x\", bytes[i]];")
+      }
+      wr.wl("return [hex copy];")
+    }
+  }
   /*
   As always, we suppose that callbacks implement only one method: onCallback,
   it has 2 arguments, in order, first one is result and second one error
@@ -355,7 +365,7 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
           case _ => objcResultName
         }
       }
-      case MBinary => s"$objcResultName.description"
+      //case MBinary => s"$objcResultName.description"
       case MDate => s"${objcResultName}Date"
       case MOptional => getObjcResult(tm.args.head)
       case _ => objcResultName
@@ -394,6 +404,9 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
         toReactType(tm.args.head, s"${converted}_value", s"${converting}_value", wr, isOptional)
         wr.wl(s"[$converted setObject:${converted}_value forKey:${converted}_key];")
       }
+    }
+    case MBinary => {
+      wr.wl(s"NSString *$converted = [self dataToHexString:$converting];")
     }
     case d: MDef =>
       d.defType match {
@@ -538,7 +551,11 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
           case MList | MSet | MMap | MOptional => isBinary(p.ty.resolved.args.head)
           case _ => isBinary(p.ty.resolved)
         }
-      }).length > 0
+      }).length > 0 ||
+        (m.ret.isDefined && (m.ret.get.resolved.base match {
+          case MList | MSet | MMap | MOptional => isBinary(m.ret.get.resolved.args.head)
+          case _ => isBinary(m.ret.get.resolved)
+        }))
     }).length > 0
 
     val callbackInterface = isCallbackInterface(ident, i)
@@ -614,6 +631,10 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
       w.wl(s"@implementation $self")
       if(callbackInterface) {
         generateInitMethodForCallback(w)
+        //Generate hex converter
+        if (needHexConverter) {
+          generateDataToHexMethod(w)
+        }
       } else {
         w.wl("//Export module")
         w.wl(s"RCT_EXPORT_MODULE($self)")
@@ -635,6 +656,7 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
         //Generate hex converter
         if (needHexConverter) {
           generateHexToDataMethod(w)
+          generateDataToHexMethod(w)
         }
       }
 
@@ -672,7 +694,18 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
             } else {
               w.wl
               val boxCallbackResult = marshal.toBox(resultParam.ty.resolved)
-              writeResultDictionary(resultParam.ty, "callbackResult", idObjc.field(resultParam.ident), boxCallbackResult,w)
+
+              def getFinalResult(tm: MExpr) : String = tm.base match {
+                case MBinary => {
+                  w.wl(s"NSString *objcResultData = [self dataToHexString:result];")
+                  "objcResultData"
+                }
+                case MOptional => getFinalResult(tm.args.head)
+                case _ => idObjc.field(resultParam.ident)
+              }
+              val objcResult = getFinalResult(resultParam.ty.resolved)
+
+              writeResultDictionary(resultParam.ty, "callbackResult", objcResult, boxCallbackResult, w)
               w.wl
               w.wl(s"self.resolve(callbackResult);")
             }
@@ -794,17 +827,22 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
               } else {
 
                 //If result is NSDate use NSDateFormatter
-                def formatIfDate(tm: MExpr) : Unit = tm.base match {
+                def getFinalResult(tm: MExpr) : String = tm.base match {
                   case MDate => {
                     w.wl("NSISO8601DateFormatter *dateFormatter = [[NSISO8601DateFormatter alloc] init];")
                     w.wl("NSString *objcResultDate = [dateFormatter stringFromDate:objcResult];")
+                    "objcResult"
                   }
-                  case MOptional => formatIfDate(tm.args.head)
-                  case _ =>
+                  case MBinary => {
+                    w.wl(s"NSString *objcResultData = [self dataToHexString:objcResult];")
+                    "objcResultData"
+                  }
+                  case MOptional => getFinalResult(tm.args.head)
+                  case _ => "objcResult"
                 }
-                formatIfDate(m.ret.get.resolved)
+                val objcResult = getFinalResult(m.ret.get.resolved)
 
-                writeResultDictionary(m.ret.get, "result", "objcResult", boxResult, w)
+                writeResultDictionary(m.ret.get, "result", objcResult, boxResult, w)
               }
 
               w.wl
@@ -922,6 +960,7 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
       //Generate hex converter
       if (needHexConverter) {
         generateHexToDataMethod(w)
+        generateDataToHexMethod(w)
       }
       // Constructor from all fields (not copying)
       val init = s"RCT_REMAP_METHOD(init, init$firstInitializerArg"
@@ -1101,7 +1140,15 @@ class ReactNativeObjcGenerator(spec: Spec, objcInterfaces : Seq[String]) extends
             w.wl(s"""${if (isContainer(f.ty.resolved)) "NSArray<NSDictionary *>" else "NSDictionary"} *result = [data objectForKey:@"$fieldIdent"];""")
           } else {
             w.wl(s"""$objcInterface *objcImpl = ($objcInterface *)[self.objcImplementations objectForKey:currentInstance[@"uid"]];""")
-            val returnValue = s"objcImpl.$fieldIdent${if (isBinary(f.ty.resolved)) s".description" else ""}"
+
+            val returnValue = isBinary(f.ty.resolved) match {
+              case true => {
+                w.wl(s"NSString *objcImpl${fieldIdent}HexString = [self dataToHexString:objcImpl.$fieldIdent];")
+                s"objcImpl${fieldIdent}HexString"
+              }
+              case false => s"objcImpl.$fieldIdent"
+            }
+            //val returnValue = s"objcImpl.$fieldIdent${if (isBinary(f.ty.resolved)) s".description" else ""}"
             w.wl(s"""NSDictionary *result = @{@"value" : ${getterResult(f.ty, returnValue)}};""")
           }
 
