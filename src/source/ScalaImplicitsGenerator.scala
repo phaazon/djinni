@@ -94,12 +94,15 @@ class ScalaImplicitsGenerator(spec: Spec) extends Generator(spec) {
       s"${param.ident.name}: ${javaToScalaType(marshal.typename(param.ty))}"
   }
 
+  val ListCallbackPattern = "([a-zA-Z]+)ListCallback".r
+  val CallbackPattern = "([a-zA-Z0-9]+)Callback".r
   private def callbackToUnderlyingType(param: Field): String = {
-    val unresolvedType = javaToScalaType(param.ty.expr.ident.name.replace("ListCallback", "").replace("Callback", ""))
-    if (param.ty.expr.ident.name.contains("ListCallback"))
-      s"ArrayList[$unresolvedType]"
-    else
-      unresolvedType
+    param.ty.expr.ident.name match {
+      case "BoolCallback" => "Boolean"
+      case "BoolListCallback" => "ArrayList[Boolean]"
+      case ListCallbackPattern(t) => javaToScalaType(t)
+      case CallbackPattern(t) => s"ArrayList[${javaToScalaType(t)}]"
+    }
   }
 
   private def javaToScalaType(t: String): String = {
@@ -137,7 +140,6 @@ class ScalaImplicitsGenerator(spec: Spec) extends Generator(spec) {
       case "Short" => "java.lang.Short"
       case "Array" => "Array"
       case others =>
-        println(others)
         if (others.contains("[") && false)
           t.takeWhile(_ != '<') + "[" + scalarToClassType(t.drop(t.indexOf('<') + 1).takeWhile(_ != '>')) + "]"
         else
