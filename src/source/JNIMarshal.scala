@@ -97,7 +97,7 @@ class JNIMarshal(spec: Spec) extends Marshal(spec) {
         case "i64" => "I64"
         case "f32" => "F32"
         case "f64" => "F64"
-        case "bool" => "Boolean"
+        case "bool" => "Bool"
       }
       case MOptional => "Optional"
       case MBinary => "Binary"
