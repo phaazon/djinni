@@ -962,7 +962,6 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
             w.wl("super(reactContext);")
             w.wl("this.reactContext = reactContext;")
             w.wl(s"this.javaObjects = new HashMap<String, $javaInterface>();")
-            w.wl("WritableNativeMap.setUseNativeAccessor(true);")
           }
           w.wl
           w.wl("@Override")
@@ -1049,7 +1048,6 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
           w.wl("super(reactContext);")
           w.wl("this.reactContext = reactContext;")
           w.wl(s"this.javaObjects = new HashMap<String, $javaInterface>();")
-          w.wl("WritableNativeMap.setUseNativeAccessor(true);")
           if (hasOneFieldAsInterface) {
             w.wl(s"this.implementationsData = new WritableNativeMap();")
           }
