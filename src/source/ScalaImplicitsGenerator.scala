@@ -100,8 +100,8 @@ class ScalaImplicitsGenerator(spec: Spec) extends Generator(spec) {
     param.ty.expr.ident.name match {
       case "BoolCallback" => "Boolean"
       case "BoolListCallback" => "ArrayList[Boolean]"
-      case CallbackPattern(t) => javaToScalaType(t)
       case ListCallbackPattern(t) => s"ArrayList[${javaToScalaType(t)}]"
+      case CallbackPattern(t) => javaToScalaType(t)
     }
   }
 
