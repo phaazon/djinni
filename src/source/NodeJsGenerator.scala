@@ -81,7 +81,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
               } else {
                 //Windows complains about 0 sized arrays
                 val arraySize = if(countArgs == 0) 1 else countArgs
-                var args: String = s"Handle<Value> args[$arraySize"
+                var args: String = s"Local<Value> args[$arraySize"
                 if(countArgs > 0) {
                   args = s"${args}] = {"
                   for (i <- 0 to countArgs - 1) {
@@ -104,7 +104,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
 
                 val quotedMethod = s""""$methodName""""
                 w.wl(s"auto calling_funtion = Nan::Get(local_njs_impl,Nan::New<String>($quotedMethod).ToLocalChecked()).ToLocalChecked();")
-                w.wl(s"auto result_$methodName = Nan::CallAsFunction(calling_funtion->ToObject(),local_njs_impl,$countArgs,args);")
+                w.wl(s"auto result_$methodName = Nan::CallAsFunction(calling_funtion->ToObject(Nan::GetCurrentContext()).ToLocalChecked(),local_njs_impl,$countArgs,args);")
                 w.wl(s"if(result_$methodName.IsEmpty())").braced {
                   val error = s""""$baseClassName::$methodName call failed""""
                   w.wl(s"Nan::ThrowError($error);")
@@ -349,7 +349,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
             wr.wl(s"return Nan::ThrowError($error);")
 
           }
-          wr.wl(s"auto node_instance = std::make_shared<$baseClassName>(info[0]->ToObject());")
+          wr.wl(s"auto node_instance = std::make_shared<$baseClassName>(info[0]->ToObject(Nan::GetCurrentContext()).ToLocalChecked());")
         }
         wr.wl(s"djinni::js::ObjectWrapper<$baseClassName>::Wrap(node_instance, info.This());")
       }
@@ -405,7 +405,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
 
       wr.wl
       wr.wl(s"//Add template to target")
-      wr.wl(s"target->Set(Nan::New<String>($quotedClassName).ToLocalChecked(), func_template->GetFunction());")
+      wr.wl(s"target->Set(Nan::New<String>($quotedClassName).ToLocalChecked(), func_template->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());")
     }
 
   }
@@ -453,7 +453,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
       wr.wl
       wr.wl("Local<Object> obj;")
       wr.wl("if(!local_prototype.IsEmpty())").braced {
-        wr.wl("obj = local_prototype->NewInstance();")
+        wr.wl("obj = local_prototype->NewInstance(Nan::GetCurrentContext()).ToLocalChecked();")
         wr.wl(s"djinni::js::ObjectWrapper<$cppClassNameWithNamespace>::Wrap(object, obj);");
       }
       wr.wl("else").braced {

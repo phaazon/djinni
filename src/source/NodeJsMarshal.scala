@@ -232,7 +232,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
 
           //Get properties' names, loop over them and get their values
           val propretyNames = s"${converted}_prop_names"
-          wr.wl(s"auto $propretyNames = $containerName->GetPropertyNames();")
+          wr.wl(s"auto $propretyNames = $containerName->GetPropertyNames(Nan::GetCurrentContext()).ToLocalChecked();")
           wr.wl(s"for(uint32_t ${converted}_id = 0; ${converted}_id < $propretyNames->Length(); ${converted}_id++)").braced {
             wr.wl(s"auto key = $propretyNames->Get(${converted}_id);")
             //Check types before access
@@ -273,7 +273,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     def base(m: Meta): IndentWriter = m match {
       case p: MPrimitive => wr.wl(s"auto $converted = Nan::To<${toSupportedCppNativeTypes(p.cName)}>($converting).FromJust();")
       case MString =>
-        wr.wl(s"String::Utf8Value string_$converted($converting->ToString());")
+        wr.wl(s"Nan::Utf8String string_$converted($converting->ToString(Nan::GetCurrentContext()).ToLocalChecked());")
         wr.wl(s"auto $converted = std::string(*string_$converted);")
       case MDate => {
         wr.wl(s"auto time_$converted = Nan::To<int32_t>($converting).FromJust();")
@@ -316,7 +316,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
               wr.wl
               val fieldName = idCpp.field(f.ident)
               val quotedFieldName = s""""$fieldName""""
-              wr.wl(s"auto field_${converted}_$count = Nan::Get($converting->ToObject(), Nan::New<String>($quotedFieldName).ToLocalChecked()).ToLocalChecked();")
+              wr.wl(s"auto field_${converted}_$count = Nan::Get($converting->ToObject(Nan::GetCurrentContext()).ToLocalChecked(), Nan::New<String>($quotedFieldName).ToLocalChecked()).ToLocalChecked();")
               toCppArgument(f.ty.resolved, s"${converted}_$count", s"field_${converted}_$count", wr)
               listOfRecordArgs += s"${converted}_$count"
               count = count + 1
