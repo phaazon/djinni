@@ -1038,7 +1038,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
         w.wl("private final ReactApplicationContext reactContext;")
         w.wl(s"private Map<String, $javaInterface> javaObjects;")
         if (hasOneFieldAsInterface) {
-          w.wl(s"private WritableNativeMap implementationsData;")
+          w.wl(s"private Map<String, Object> implementationsData;")
         }
         w.wl(s"public Map<String, $javaInterface> getJavaObjects()").braced {
           w.wl("return javaObjects;")
@@ -1049,7 +1049,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
           w.wl("this.reactContext = reactContext;")
           w.wl(s"this.javaObjects = new HashMap<String, $javaInterface>();")
           if (hasOneFieldAsInterface) {
-            w.wl(s"this.implementationsData = new WritableNativeMap();")
+            w.wl(s"this.implementationsData = new HashMap<>();")
           }
         }
         w.wl
@@ -1138,7 +1138,7 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
           w.wl(s"""finalResult.putString("type","$paramTypeName");""")
           w.wl("""finalResult.putString("uid",uuid);""")
           if (hasOneFieldAsInterface) {
-            w.wl(s"this.implementationsData.putMap(uuid, implementationsData);")
+            w.wl(s"this.implementationsData.put(uuid, implementationsData);")
           }
           w.wl("promise.resolve(finalResult);")
         }
@@ -1160,9 +1160,10 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
               toReactType(f.ty.resolved, s"converted_field_$id", s"field_$id", w)
               val putMethodName = if (isContainer(f.ty.resolved)) "putArray" else "putMap"
               w.wl(s"""implementationsData.${putMethodName}("$fieldIdent", converted_field_$id);""")
+              //w.wl(s"""implementationsData.put("$fieldIdent", converted_field_$id);""")
             }
           })
-          w.wl("this.implementationsData.putMap(currentInstanceUid, implementationsData);")
+          w.wl("this.implementationsData.put(currentInstanceUid, implementationsData);")
         }
       }
 
@@ -1188,10 +1189,10 @@ class ReactNativeJavaGenerator(spec: Spec, javaInterfaces : Seq[String]) extends
             w.wl("""if (uid.length() > 0)""").braced {
               //w.wl(s"${javaInterface} javaObj = this.javaObjects.get(uid);")
               if (isFieldInterface || isFieldRecord) {
-                w.wl("if (!this.implementationsData.hasKey(uid))").braced {
+                w.wl("if (!this.implementationsData.containsKey(uid))").braced {
                   w.wl("this.mapImplementationsData(currentInstance);")
                 }
-                w.wl("ReadableNativeMap data = this.implementationsData.getMap(uid);")
+                w.wl("ReadableNativeMap data = (ReadableNativeMap)this.implementationsData.get(uid);")
                 val getMethodName = if (isContainer(f.ty.resolved)) "getArray" else "getMap"
                 val fieldDataType = if (isContainer(f.ty.resolved)) "getArray" else "getMap"
 
