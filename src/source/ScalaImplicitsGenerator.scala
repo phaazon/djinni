@@ -72,7 +72,7 @@ class ScalaImplicitsGenerator(spec: Spec) extends Generator(spec) {
             }
           }
         }
-        w.wl("private def arrayList2Array[T](a: Array[T]): java.util.ArrayList[T] = new java.util.ArrayList[T](a.toSeq.asInstanceOf[java.util.Collection[T]])")
+        w.wl("private def arrayList2Array[T](a: Array[T]): java.util.ArrayList[T] = new java.util.ArrayList[T](a.toList.asJava.asInstanceOf[java.util.Collection[T]])")
         for (td <- idl.collect { case itd: InternTypeDecl => itd }) td.body match {
           case i: Interface => generateRichInterface(td.origin, td.ident, td.doc, td.params, i, w)
           case others => // Do nothing
