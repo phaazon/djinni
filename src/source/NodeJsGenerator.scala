@@ -405,7 +405,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
 
       wr.wl
       wr.wl(s"//Add template to target")
-      wr.wl(s"target->Set(Nan::New<String>($quotedClassName).ToLocalChecked(), func_template->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());")
+      wr.wl(s"Nan::Set(target, Nan::New<String>($quotedClassName).ToLocalChecked(), Nan::GetFunction(func_template).ToLocalChecked());")
     }
 
   }

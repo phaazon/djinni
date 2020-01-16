@@ -201,13 +201,12 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
         wr.wl(s"vector<$cppTemplType> $converted;")
         wr.wl(s"Local<$container> $containerName = Local<$container>::Cast($converting);")
         wr.wl(s"for(uint32_t ${converted}_id = 0; ${converted}_id < $containerName->Length(); ${converted}_id++)").braced {
-          wr.wl(s"if($containerName->Get(${converted}_id)->Is$nodeTemplType())").braced {
+          wr.wl(s"if($containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()->Is$nodeTemplType())").braced {
             //Cast to c++ types
             if (!binary) {
-              toCppArgument(tm.args(0), s"${converted}_elem", s"$containerName->Get(${converted}_id)", wr)
+              toCppArgument(tm.args(0), s"${converted}_elem", s"$containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()", wr)
             } else {
-              //val context = "info.GetIsolate()->GetCurrentContext()"
-              wr.wl(s"auto ${converted}_elem = Nan::To<uint32_t>($containerName->Get(${converted}_id)).FromJust();")
+              wr.wl(s"auto ${converted}_elem = Nan::To<uint32_t>($containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()).FromJust();")
             }
             //Append to resulting container
             wr.wl(s"$converted.emplace_back(${converted}_elem);")
@@ -234,7 +233,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           val propretyNames = s"${converted}_prop_names"
           wr.wl(s"auto $propretyNames = $containerName->GetPropertyNames(Nan::GetCurrentContext()).ToLocalChecked();")
           wr.wl(s"for(uint32_t ${converted}_id = 0; ${converted}_id < $propretyNames->Length(); ${converted}_id++)").braced {
-            wr.wl(s"auto key = $propretyNames->Get(${converted}_id);")
+            wr.wl(s"auto key = $propretyNames->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked();")
             //Check types before access
             wr.wl(s"auto ${converted}_key_ctx = $containerName->Get(Nan::GetCurrentContext(), key).ToLocalChecked();")
             wr.wl(s"if(key->Is$nodeTemplType() && ${converted}_key_ctx->Is$nodeTemplValueType())").braced {
@@ -371,7 +370,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           } else {
             wr.wl(s"auto ${converted}_elem = Nan::New<Uint32>($converting[${converted}_id]);")
           }
-          wr.wl(s"$converted->Set((int)${converted}_id,${converted}_elem);")
+          wr.wl(s"Nan::Set($converted, (int)${converted}_id,${converted}_elem);")
         }
         wr.wl
       }
