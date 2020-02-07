@@ -198,18 +198,33 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
 
       def toVector(cppTemplType: String, nodeTemplType: String): IndentWriter = {
         val containerName = s"${converted}_container"
-        wr.wl(s"vector<$cppTemplType> $converted;")
-        wr.wl(s"Local<$container> $containerName = Local<$container>::Cast($converting);")
-        wr.wl(s"for(uint32_t ${converted}_id = 0; ${converted}_id < $containerName->Length(); ${converted}_id++)").braced {
-          wr.wl(s"if($containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()->Is$nodeTemplType())").braced {
-            //Cast to c++ types
-            if (!binary) {
+        if (binary) {
+          // From mow on, we will expect byte of arrays to be strings so let's check this
+          wr.wl(s"if(!$converting->IsString())").braced {
+            val error = s""""$converting should be a hexadecimal string.""""
+            wr.wl(s"Nan::ThrowError($error);")
+          }
+          //Nan.Utf8String
+          wr.wl(s"std::vector<uint8_t> $converted;")
+          wr.wl(s"Nan::Utf8String str_$converted($converting);")
+          wr.wl(s"std::string string_$converted(*str_$converted, str_$converted.length());")
+          wr.wl(s"""if (string_$converted.rfind("0x", 0) == 0)""").braced {
+            wr.wl(s"$converted = djinni::js::hex::toByteArray(string_$converted);")
+          }
+          wr.wl("else").braced {
+            wr.wl(s"$converted = std::vector<uint8_t>(string_$converted.cbegin(), string_$converted.cend());")
+          }
+
+        } else {
+          wr.wl(s"vector<$cppTemplType> $converted;")
+          wr.wl(s"Local<$container> $containerName = Local<$container>::Cast($converting);")
+          wr.wl(s"for(uint32_t ${converted}_id = 0; ${converted}_id < $containerName->Length(); ${converted}_id++)").braced {
+            wr.wl(s"if($containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()->Is$nodeTemplType())").braced {
+              //Cast to c++ types
               toCppArgument(tm.args(0), s"${converted}_elem", s"$containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()", wr)
-            } else {
-              wr.wl(s"auto ${converted}_elem = Nan::To<uint32_t>($containerName->Get(Nan::GetCurrentContext(), ${converted}_id).ToLocalChecked()).FromJust();")
+              //Append to resulting container
+              wr.wl(s"$converted.emplace_back(${converted}_elem);")
             }
-            //Append to resulting container
-            wr.wl(s"$converted.emplace_back(${converted}_elem);")
           }
         }
         wr.wl
@@ -361,16 +376,20 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     def fromCppContainer(container: String, binary: Boolean = false): IndentWriter = {
 
       def fromVector(): IndentWriter = {
-        wr.wl(s"Local<$container> $converted = Nan::New<$container>();")
-        //Loop and cast elements of $converting
-        wr.wl(s"for(size_t ${converted}_id = 0; ${converted}_id < $converting.size(); ${converted}_id++)").braced {
-          //Cast
-          if (!binary) {
-            fromCppArgument(tm.args(0), s"${converted}_elem", s"$converting[${converted}_id]", wr)
-          } else {
-            wr.wl(s"auto ${converted}_elem = Nan::New<Uint32>($converting[${converted}_id]);")
+        if (binary) {
+          wr.wl(s"auto $converted = Nan::New<String>(djinni::js::hex::toString($converting)).ToLocalChecked();")
+        } else {
+          wr.wl(s"Local<$container> $converted = Nan::New<$container>();")
+          //Loop and cast elements of $converting
+          wr.wl(s"for(size_t ${converted}_id = 0; ${converted}_id < $converting.size(); ${converted}_id++)").braced {
+            //Cast
+            if (!binary) {
+              fromCppArgument(tm.args(0), s"${converted}_elem", s"$converting[${converted}_id]", wr)
+            } else {
+              wr.wl(s"auto ${converted}_elem = Nan::New<Uint32>($converting[${converted}_id]);")
+            }
+            wr.wl(s"Nan::Set($converted, (int)${converted}_id,${converted}_elem);")
           }
-          wr.wl(s"Nan::Set($converted, (int)${converted}_id,${converted}_elem);")
         }
         wr.wl
       }
