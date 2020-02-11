@@ -113,7 +113,39 @@ object preprocessor {
   }
 
   private def resolveTypeRef(typeRef: TypeRef, generics: Seq[TypeDecl], specializedGenerics: ArrayBuffer[TypeDecl]): TypeRef = {
-    if (typeRef.expr.args.nonEmpty) {
+    // check whether the type ref is a callback2; if so, we turn it into a Callback or ListCallback; the first
+    // argument, which is all the time "void", is ignored right now
+    if (typeRef.expr.ident.name == "callback2" && typeRef.expr.args.length == 1) {
+      val firstArg = typeRef.expr.args.head
+
+      val ret = if (firstArg.args.isEmpty) {
+        // case such as callback2<T>
+        val args = Seq(firstArg)
+        val expr = typeRef.expr.copy(Ident("Callback", typeRef.expr.ident.file, typeRef.expr.ident.loc), args)
+        typeRef.copy(expr)
+      } else {
+        // case such as callback2<T<_>>
+        val subType = firstArg.args.head
+
+        if (firstArg.ident.name == "list" || subType.ident.name == "list") {
+          // cases such as callback2<list<_>> or callback2<T<list<_>>>
+          val subSubType = if (subType.args.isEmpty) { subType } else { subType.args.head }
+          val args = Seq(subSubType)
+          val expr = typeRef.expr.copy(Ident("ListCallback", typeRef.expr.ident.file, typeRef.expr.ident.loc), args)
+          typeRef.copy(expr)
+        } else {
+          // cases such as callback2<T<Q>> with T ≠ list, Q ≠ list
+          val args = Seq(subType)
+          val expr = typeRef.expr.copy(Ident("Callback", typeRef.expr.ident.file, typeRef.expr.ident.loc), args)
+          typeRef.copy(expr)
+        }
+      }
+
+      resolveGenericTypeFromTypeExpr(ret.expr, generics).map({(generic: TypeDecl) =>
+        specializedGenerics.append(createTypeFromGeneric(ret.expr, generic))
+        createTypeRefFromGenericRef(ret)
+      }).getOrElse(ret)
+    } else if (typeRef.expr.args.nonEmpty) {
       resolveGenericTypeFromTypeExpr(typeRef.expr, generics).map({(generic: TypeDecl) =>
         specializedGenerics.append(createTypeFromGeneric(typeRef.expr, generic))
         createTypeRefFromGenericRef(typeRef)
