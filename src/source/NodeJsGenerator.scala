@@ -32,6 +32,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
         w.wl
         w.wl(hppFileName)
         w.wl("#include \""+ helperFiles.ObjectWrapperHeader + "\"")
+        w.wl("#include \""+ helperFiles.HexUtilsHeader + "\"")
         w.wl
         w.wl("using namespace v8;")
         w.wl("using namespace node;")
@@ -405,7 +406,7 @@ class NodeJsGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) exte
 
       wr.wl
       wr.wl(s"//Add template to target")
-      wr.wl(s"target->Set(Nan::New<String>($quotedClassName).ToLocalChecked(), func_template->GetFunction(Nan::GetCurrentContext()).ToLocalChecked());")
+      wr.wl(s"Nan::Set(target, Nan::New<String>($quotedClassName).ToLocalChecked(), Nan::GetFunction(func_template).ToLocalChecked());")
     }
 
   }

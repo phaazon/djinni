@@ -108,6 +108,7 @@ class NodeJsCppGenerator(spec: Spec, helperFiles: NodeJsHelperFilesDescriptor) e
         val hppFileName = "#include \"" + idNode.ty(ident.name) + "Cpp." + spec.cppHeaderExt + "\""
         w.wl(hppFileName)
         w.wl("#include \"" + helperFiles.ObjectWrapperHeader + "\"")
+        w.wl("#include \"" + helperFiles.HexUtilsHeader + "\"")
         w.wl
         w.wl("using namespace v8;")
         w.wl("using namespace node;")
