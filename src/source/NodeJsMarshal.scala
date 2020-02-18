@@ -33,7 +33,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
       case p: MPrimitive => p.nodeJSName
       case MString => "String"
       case MDate => "Date"
-      case MBinary => "Object"
+      case MBinary => "String"
       case MOptional => "MaybeLocal"
       case MList => "Array"
       case MSet => "Set"
@@ -209,7 +209,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
           wr.wl(s"Nan::Utf8String str_$converted($converting);")
           wr.wl(s"std::string string_$converted(*str_$converted, str_$converted.length());")
           wr.wl(s"""if (string_$converted.rfind("0x", 0) == 0)""").braced {
-            wr.wl(s"$converted = djinni::js::hex::toByteArray(string_$converted);")
+            wr.wl(s"$converted = djinni::js::hex::toByteArray(string_$converted.substr(2));")
           }
           wr.wl("else").braced {
             wr.wl(s"$converted = std::vector<uint8_t>(string_$converted.cbegin(), string_$converted.cend());")
@@ -377,7 +377,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
 
       def fromVector(): IndentWriter = {
         if (binary) {
-          wr.wl(s"auto $converted = Nan::New<String>(djinni::js::hex::toString($converting)).ToLocalChecked();")
+          wr.wl(s"""auto $converted = Nan::New<String>("0x" + djinni::js::hex::toString($converting)).ToLocalChecked();""")
         } else {
           wr.wl(s"Local<$container> $converted = Nan::New<$container>();")
           //Loop and cast elements of $converting
