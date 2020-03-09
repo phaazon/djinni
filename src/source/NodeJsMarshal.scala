@@ -280,6 +280,7 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
     val cppType = super.paramType(tm, needRef = true)
     var interfaceName = tm.base match {
       case d: MDef => idCpp.ty(d.name)
+      case e: MExtern => idCpp.ty(e.name)
       case _ => cppType
     }
     val nodeType = paramType(tm)
@@ -360,10 +361,38 @@ class NodeJsMarshal(spec: Spec) extends CppMarshal(spec) {
             }
             wr.wl
         }
-      case e: MExtern => e.defType match {
-        case DInterface => wr.wl(s"std::shared_ptr<${e.cpp.typename}>")
+      case e: MExtern => e.body match {
+        case i: Interface =>
+          if(e.name.contains("Callback")) {
+            if(i.ext.nodeJS) {
+              //Set promise if it is a callback
+              wr.wl
+              wr.wl("//Create promise and set it into Callback")
+                wr.wl(s"auto ${converted}_resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();")
+                wr.wl(s"$nodeType *njs_ptr_$converted = new $nodeType(${converted}_resolver);")
+                wr.wl(s"std::shared_ptr<$nodeType> $converted(njs_ptr_$converted);")
+            }
+          } else {
+            wr.wl(s"Local<Object> njs_$converted = $converting->ToObject(Nan::GetCurrentContext()).ToLocalChecked();")
+            wr.wl(s"auto $converted = djinni::js::ObjectWrapper<${spec.cppNamespace}::$interfaceName>::Unwrap(njs_$converted);");
+
+            if(i.ext.cpp){
+              wr.wl(s"if(!$converted)").braced{
+                val error = s""""NodeJs Object to $nodeType failed""""
+                wr.wl(s"return Nan::ThrowError($error);")
+              }
+            }
+          }
+          wr.wl
         case _ => wr.wl(e.cpp.typename)
       }
+      //  e.defType match {
+      //  case DInterface => e.body match {
+      //    case _: Interface => wr.wl(s"std::shared_ptr<${e.cpp.typename}>")
+      //    case _ => wr.wl(e.cpp.typename)
+      //  }
+      //  case _ => wr.wl(e.cpp.typename)
+      //}
       case p: MParam => wr.wl(idNode.typeParam(p.name))
     }
 
